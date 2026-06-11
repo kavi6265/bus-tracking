@@ -199,9 +199,12 @@ public class WebController {
 @ResponseBody
 public String smtpTest() {
     try {
-        java.net.Socket socket = new java.net.Socket("smtp.gmail.com", 587);
+        java.net.Socket socket =
+                new java.net.Socket("smtp.gmail.com", 587);
+
         socket.close();
-        return "Connected";
+
+        return "SMTP CONNECTED";
     } catch (Exception e) {
         return e.toString();
     }
