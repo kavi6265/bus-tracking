@@ -26,6 +26,7 @@ public class SecurityConfig {
                     "/forgot-password",
                     "/reset-password",
                     "/track-bus",
+                    "/driver/add-bus",
                     "/bus/location"
                 ).permitAll()
                 .requestMatchers("/driver/**").authenticated()
