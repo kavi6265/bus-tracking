@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Driver – Live Bus Tracking</title>
+
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_KEY"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 20px;
+            max-width: 900px;
+            margin: auto;
+        }
+        h2 {
+            text-align: center;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        #map {
+            width: 100%;
+            height: 450px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+        #status {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>🚍 Driver – Live Bus GPS Tracking</h2>
+
+    <input type="text" id="busNumber" placeholder="Enter Bus Number (e.g. TN01A1234)" />
+    <button onclick="startTracking()">Start Tracking</button>
+    <button onclick="stopTracking()">Stop</button>
+
+    <div id="status">Waiting for GPS…</div>
+    <div id="map"></div>
+</div>
+
+<script>
+let map;
+let marker;
+let intervalId = null;
+
+function initMap(lat, lng) {
+    const position = { lat: lat, lng: lng };
+
+    map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 16,
+        center: position
+    });
+
+    marker = new google.maps.Marker({
+        position: position,
+        map: map,
+        title: "Bus Location"
+    });
+}
+
+function startTracking() {
+    const busNumber = document.getElementById("busNumber").value;
+
+    if (!busNumber) {
+        alert("Please enter Bus Number");
+        return;
+    }
+
+    if (!navigator.geolocation) {
+        alert("GPS not supported on this device");
+        return;
+    }
+
+    if (intervalId !== null) {
+        alert("Tracking already running");
+        return;
+    }
+
+    intervalId = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(position => {
+
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+
+            // Send GPS to backend
+            fetch(`/driver/update-location?busNumber=${busNumber}&latitude=${lat}&longitude=${lng}`, {
+                method: "POST"
+            });
+
+            // Initialize or update map
+            if (!map) {
+                initMap(lat, lng);
+            } else {
+                const newPos = { lat: lat, lng: lng };
+                marker.setPosition(newPos);
+                map.setCenter(newPos);
+            }
+
+            document.getElementById("status").innerText =
+                "📍 Location sent: " + lat.toFixed(6) + ", " + lng.toFixed(6);
+
+        }, error => {
+            document.getElementById("status").innerText = "GPS Error: " + error.message;
+        });
+
+    }, 5000); // update every 5 seconds
+}
+
+function stopTracking() {
+    if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
+        document.getElementById("status").innerText = "Tracking stopped";
+    }
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>Add Bus Details</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.container{
+    width: 600px;
+    margin: 40px auto;
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* Back Button */
+.back-btn{
+    display: inline-block;
+    background: #2563eb;
+    color: white;
+    text-decoration: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-weight: bold;
+}
+
+.back-btn:hover{
+    background: #1d4ed8;
+}
+
+h2{
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+input,
+textarea{
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    font-size: 15px;
+}
+
+textarea{
+    resize: vertical;
+}
+
+button{
+    width: 100%;
+    padding: 12px;
+    background: #16a34a;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+button:hover{
+    background: #15803d;
+}
+
+.success{
+    color: green;
+    text-align: center;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+.error{
+    color: red;
+    text-align: center;
+    margin-bottom: 15px;
+    font-weight: bold;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- Back Button -->
+    <a th:href="@{/dashboard}" class="back-btn">
+        ← Back to Dashboard
+    </a>
+
+    <h2>🚌 Add Bus Details</h2>
+
+    <!-- Success Message -->
+    <div th:if="${message}" class="success">
+        <span th:text="${message}"></span>
+    </div>
+
+    <!-- Error Message -->
+    <div th:if="${error}" class="error">
+        <span th:text="${error}"></span>
+    </div>
+
+    <form th:action="@{/driver/add-bus}" method="post">
+
+        <input type="text"
+               name="busNumber"
+               placeholder="Bus Number (e.g. 21G)"
+               required>
+
+        <input type="text"
+               name="busName"
+               placeholder="Bus Name"
+               required>
+
+        <input type="text"
+               name="source"
+               placeholder="Source Location"
+               required>
+
+        <input type="text"
+               name="destination"
+               placeholder="Destination Location"
+               required>
+
+        <textarea
+                name="stops"
+                rows="5"
+                placeholder="Enter Stops (comma separated)
+Example:
+Guindy, Pallavaram, Chromepet, Tambaram"
+                required></textarea>
+
+        <button type="submit">
+            Save Bus Details
+        </button>
+
+    </form>
+
+</div>
+
+</body>
+</html>

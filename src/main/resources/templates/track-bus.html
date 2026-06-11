@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Track Bus</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+
+body{
+    background:#111;
+    color:white;
+    font-family:'Segoe UI',sans-serif;
+    margin:0;
+}
+
+.header{
+    background:#1e293b;
+    padding:15px;
+}
+
+.back-btn{
+    color:white;
+    text-decoration:none;
+    font-size:18px;
+    font-weight:bold;
+}
+
+.container{
+    padding:20px;
+}
+
+.bus-info{
+    background:#1f1f1f;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:20px;
+    box-shadow:0px 4px 10px rgba(0,0,0,0.3);
+}
+
+.live-status{
+    background:#1f1f1f;
+    padding:20px;
+    border-radius:10px;
+    margin-bottom:20px;
+    box-shadow:0px 4px 10px rgba(0,0,0,0.3);
+}
+
+.timeline{
+    border-left:5px solid #2563eb;
+    margin-left:20px;
+    padding-left:25px;
+    margin-bottom:30px;
+}
+
+.stop{
+    margin-bottom:25px;
+    position:relative;
+}
+
+.stop::before{
+    content:'';
+    width:16px;
+    height:16px;
+    background:#60a5fa;
+    border-radius:50%;
+    position:absolute;
+    left:-34px;
+    top:6px;
+}
+
+.current-stop{
+    color:#22c55e;
+    font-weight:bold;
+    font-size:22px;
+    background:#1b4332;
+    padding:10px;
+    border-radius:8px;
+}
+
+.normal-stop{
+    color:white;
+    padding:8px;
+}
+
+#map{
+    height:500px;
+    width:100%;
+    border-radius:10px;
+    overflow:hidden;
+}
+
+.section-title{
+    margin-bottom:20px;
+    color:#60a5fa;
+}
+
+.info-box{
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:15px;
+}
+
+.info-item{
+    background:#222;
+    padding:12px;
+    border-radius:8px;
+    flex:1;
+    min-width:180px;
+}
+
+.status-badge{
+    background:#16a34a;
+    padding:5px 12px;
+    border-radius:20px;
+    display:inline-block;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+
+    <a th:href="@{/dashboard}"
+       class="back-btn">
+
+        ← Back to Dashboard
+
+    </a>
+
+</div>
+
+<div class="container">
+
+    <!-- Bus Details -->
+
+    <div class="bus-info">
+
+        <h2>
+            🚌
+            <span th:text="${bus.busNumber}">
+                21G
+            </span>
+        </h2>
+
+        <p>
+            <strong>Bus Name:</strong>
+            <span th:text="${bus.busName}">
+                Chennai Express
+            </span>
+        </p>
+
+        <p>
+            <strong>Route:</strong>
+
+            <span th:text="${bus.source}">
+                Chennai
+            </span>
+
+            →
+
+            <span th:text="${bus.destination}">
+                Tambaram
+            </span>
+        </p>
+
+        <p>
+            <strong>Last Updated:</strong>
+
+            <span th:text="${bus.lastUpdated}">
+            </span>
+        </p>
+
+        <span class="status-badge">
+            Live Tracking Active
+        </span>
+
+    </div>
+
+    <!-- Live Status -->
+
+	<div class="live-status">
+
+	    <h3>📍 Live Bus Status</h3>
+
+	    <div class="info-box">
+
+	        <div class="info-item">
+	            <strong>Current Stop</strong>
+	            <br>
+	            <span th:text="${bus.currentStop}"></span>
+	        </div>
+
+	        <div class="info-item">
+	            <strong>Speed</strong>
+	            <br>
+	            <span th:text="${bus.speed}"></span> km/h
+	        </div>
+
+	        <div class="info-item">
+	            <strong>Distance Remaining</strong>
+	            <br>
+	            <span th:text="${bus.distanceRemaining}"></span> km
+	        </div>
+
+			<div class="info-item">
+
+			    <strong>ETA</strong>
+
+			    <br>
+
+			    <span th:text="${eta}">
+			    </span>
+
+			    Minutes
+
+			</div>
+	    </div>
+
+	</div>
+	<div class="live-status">
+
+	    <h3>🚍 Journey Progress</h3>
+
+	    <div style="
+	        width:100%;
+	        height:25px;
+	        background:#333;
+	        border-radius:15px;
+	        overflow:hidden;">
+
+	        <div style="
+	            height:100%;
+	            background:#22c55e;
+	            width:60%;">
+	        </div>
+
+	    </div>
+
+	    <p style="margin-top:10px;">
+	        Route Progress
+	    </p>
+
+	</div>
+    <!-- Route Timeline -->
+
+	<h3 class="section-title">
+	    🛣️ Route Progress
+	</h3>
+
+	<div class="timeline">
+
+
+		<div class="stop"
+		     th:each="stop, stat : ${#strings.arraySplit(bus.stops, ',')}">
+
+		    <div th:if="${stop == bus.currentStop}"
+		         style="
+		         background:#14532d;
+		         color:#22c55e;
+		         padding:12px;
+		         border-radius:8px;
+		         font-weight:bold;">
+
+		        🚌
+		        <span th:text="${stop}"></span>
+
+		        <br>
+
+		        <small>
+		            Current Location
+		        </small>
+
+		    </div>
+
+		    <div th:if="${stop != bus.currentStop}"
+		         style="padding:10px;">
+
+		        <span th:if="${stat.index < completedStops}">
+		            ✅
+		        </span>
+
+		        <span th:if="${stat.index >= completedStops}">
+		            📍
+		        </span>
+
+		        <span th:text="${stop}">
+		        </span>
+
+		    </div>
+
+		</div>
+
+	</div>
+
+    <!-- Map -->
+
+    <h3 class="section-title">
+        🗺️ Live Bus Location
+    </h3>
+
+    <div id="map"></div>
+
+</div>
+
+<script>
+
+let latitude =
+    Number('[[${bus.latitude}]]');
+
+let longitude =
+    Number('[[${bus.longitude}]]');
+
+if(isNaN(latitude) || isNaN(longitude)){
+
+    latitude = 13.0827;
+    longitude = 80.2707;
+
+}
+
+var map =
+    L.map('map').setView(
+        [latitude, longitude],
+        15
+    );
+
+L.tileLayer(
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        maxZoom:19
+    }
+).addTo(map);
+
+var marker =
+    L.marker(
+        [latitude, longitude]
+    )
+    .addTo(map);
+
+marker.bindPopup(
+
+    "<b>🚌 Bus Number:</b><br>" +
+    '[[${bus.busNumber}]]' +
+
+    "<br><br><b>Current Stop:</b><br>" +
+    '[[${bus.currentStop}]]'
+
+).openPopup();
+
+/* Auto Refresh Every 5 Seconds */
+
+setInterval(function(){
+
+    location.reload();
+
+},5000);
+
+</script>
+
+</body>
+</html>

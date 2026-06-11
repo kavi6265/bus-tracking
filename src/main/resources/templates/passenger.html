@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Passenger – Live Bus Tracking</title>
+
+    <!-- Google Maps -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_KEY"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            padding: 20px;
+            max-width: 900px;
+            margin: auto;
+        }
+        h2 {
+            text-align: center;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        #map {
+            width: 100%;
+            height: 450px;
+            margin-top: 15px;
+            border-radius: 8px;
+        }
+        #status {
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+    <h2>🧍 Passenger – Live Bus Tracking</h2>
+
+    <input type="text" id="busNumber" placeholder="Enter Bus Number" />
+    <button onclick="startTracking()">Track Bus</button>
+
+    <div id="status">Waiting for bus data…</div>
+    <div id="map"></div>
+</div>
+
+<script>
+let map, marker, intervalId;
+
+function initMap(lat, lng) {
+    const pos = { lat: lat, lng: lng };
+
+    map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 16,
+        center: pos
+    });
+
+    marker = new google.maps.Marker({
+        position: pos,
+        map: map,
+        title: "Bus Location"
+    });
+}
+
+function startTracking() {
+    const busNumber = document.getElementById("busNumber").value;
+
+    if (!busNumber) {
+        alert("Enter bus number");
+        return;
+    }
+
+    if (intervalId) clearInterval(intervalId);
+
+    intervalId = setInterval(() => {
+        fetch(`/bus/location?busNumber=${busNumber}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.latitude || !data.longitude) {
+                    document.getElementById("status").innerText = "Bus not active";
+                    return;
+                }
+
+                const lat = data.latitude;
+                const lng = data.longitude;
+
+                if (!map) {
+                    initMap(lat, lng);
+                } else {
+                    marker.setPosition({ lat, lng });
+                    map.setCenter({ lat, lng });
+                }
+
+                document.getElementById("status").innerText =
+                    "📍 Live Location Updated";
+            })
+            .catch(() => {
+                document.getElementById("status").innerText =
+                    "Unable to fetch bus location";
+            });
+    }, 5000); // every 5 seconds
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Bus Tracking – Signup</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 1.5rem;
+        }
+
+        form {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 340px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            width: 100%;
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        a {
+            margin-top: 15px;
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .message {
+            color: green;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .error {
+            color: red;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2>Bus Tracking – Register</h2>
+
+<form th:action="@{/signup}" method="post">
+
+    <!-- Success Message -->
+    <div th:if="${message}" class="message">
+        <span th:text="${message}"></span>
+    </div>
+
+    <!-- Error Message -->
+    <div th:if="${error}" class="error">
+        <span th:text="${error}"></span>
+    </div>
+
+    <input type="text"
+           name="username"
+           placeholder="Username"
+           required />
+
+    <input type="email"
+           name="email"
+           placeholder="Enter your Email"
+           required />
+
+    <input type="password"
+           name="password"
+           placeholder="Password"
+           required />
+
+    <select name="role">
+        <option value="DRIVER">Driver</option>
+        <option value="PASSENGER">Passenger</option>
+    </select>
+
+    <button type="submit">Register</button>
+
+</form>
+
+<a th:href="@{/login}">
+    Already have an account? Login
+</a>
+
+</body>
+</html>
