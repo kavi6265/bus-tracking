@@ -258,14 +258,17 @@ public class WebController {
 
      } catch (Exception e) {
 
-         System.out.println("MAIL ERROR:");
-         e.printStackTrace();
+    System.out.println("MAIL ERROR:");
+    System.out.println("Error Type: " + e.getClass().getName());
+    System.out.println("Error Message: " + e.getMessage());
 
-         model.addAttribute(
-                 "error",
-                 "Failed to send email. Check Spring console."
-         );
-     }
+    e.printStackTrace();
+
+    model.addAttribute(
+            "error",
+            "Failed to send email."
+    );
+}
 
      return "forgot-password";
  }
