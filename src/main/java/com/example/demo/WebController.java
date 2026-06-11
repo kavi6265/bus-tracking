@@ -195,7 +195,17 @@ public class WebController {
     /* =========================
     🔑 FORGOT PASSWORD
     ========================= */
-
+@GetMapping("/smtp-test")
+@ResponseBody
+public String smtpTest() {
+    try {
+        java.net.Socket socket = new java.net.Socket("smtp.gmail.com", 587);
+        socket.close();
+        return "Connected";
+    } catch (Exception e) {
+        return e.toString();
+    }
+}
  @GetMapping("/forgot-password")
  public String forgotPasswordPage() {
      return "forgot-password";
@@ -481,6 +491,7 @@ public String showAddBusPage() {
 
      return "track-bus";
  }
+    
 }
 
 
