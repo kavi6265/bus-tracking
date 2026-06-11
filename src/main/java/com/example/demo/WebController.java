@@ -328,6 +328,10 @@ public class WebController {
 
      return "login";
  }
+@GetMapping("/driver/add-bus")
+public String showAddBusPage() {
+    return "driver-add-bus";
+}
  @PostMapping("/driver/add-bus")
  public String saveBusDetails(@RequestParam String busNumber,
                               @RequestParam String busName,
