@@ -294,7 +294,7 @@ public String processForgotPassword(
 
     model.addAttribute(
             "resetLink",
-        );
+          resetLink);
    
 }
 
