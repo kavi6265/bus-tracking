@@ -213,11 +213,21 @@ public String smtpTest() {
  public String forgotPasswordPage() {
      return "forgot-password";
  }
+@PostMapping("/forgot-password")
+public String processForgotPassword(
+        @RequestParam(required = false) String email,
+        Model model) {
 
- @PostMapping("/forgot-password")
- public String processForgotPassword(@RequestParam String email, Model model) {
+    System.out.println("EMAIL RECEIVED = " + email);
 
-     System.out.println("Email Entered: " + email);
+    if (email == null || email.isBlank()) {
+
+        model.addAttribute(
+                "error",
+                "Email is required!");
+
+        return "forgot-password";
+    }
 
      Optional<User> optionalUser = userRepository.findByEmail(email);
 
