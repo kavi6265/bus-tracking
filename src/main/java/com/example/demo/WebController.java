@@ -260,9 +260,11 @@ public String smtpTest() {
                  "\n\nThis link expires in 15 minutes."
          );
 
-         mailSender.send(message);
+        System.out.println("Before sending email");
 
-         System.out.println("Email sent successfully!");
+        mailSender.send(message);
+
+       System.out.println("After sending email");
 
          model.addAttribute(
                  "message",
