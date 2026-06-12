@@ -225,81 +225,107 @@ public String processForgotPassword(
         model.addAttribute(
                 "error",
                 "Email is required!");
-       
+
         return "forgot-password";
     }
 
-     Optional<User> optionalUser = userRepository.findByEmail(email);
+    Optional<User> optionalUser =
+            userRepository.findByEmail(email);
 
-     if (optionalUser.isEmpty()) {
-         System.out.println("User not found!");
-         model.addAttribute("error", "Email not found!");
-         return "forgot-password";
-     }
+    if (optionalUser.isEmpty()) {
 
-     User user = optionalUser.get();
+        System.out.println("User not found!");
 
-     // Generate token
-     String token = UUID.randomUUID().toString();
+        model.addAttribute(
+                "error",
+                "Email not found!");
 
-     System.out.println("Generated Token: " + token);
+        return "forgot-password";
+    }
 
-     user.setResetToken(token);
-     user.setTokenExpiry(LocalDateTime.now().plusMinutes(15));
+    User user = optionalUser.get();
 
-     userRepository.save(user);
+    // Generate Token
+    String token = UUID.randomUUID().toString();
 
-     System.out.println("Token saved to database");
-     System.out.println("User Email: " + user.getEmail());
+    System.out.println("Generated Token: " + token);
 
-     try {
+    user.setResetToken(token);
 
-         String resetLink =
-                 "https://bus-tracking-3-0idg.onrender.com/reset-password?token=" + token; 
+    user.setTokenExpiry(
+            LocalDateTime.now().plusMinutes(15));
 
-         System.out.println("Reset Link: " + resetLink);
+    userRepository.save(user);
 
-         SimpleMailMessage message = new SimpleMailMessage();
-         message.setFrom("akavi6265@gmail.com");
-         message.setTo(user.getEmail());
-         message.setSubject("Password Reset Request");
-         message.setText(
-                 "Hello " + user.getUsername() + ",\n\n" +
-                 "Click the link below to reset your password:\n\n" +
-                 resetLink +
-                 "\n\nThis link expires in 15 minutes."
-         );
+    System.out.println("Token saved to database");
+    System.out.println("User Email: " + user.getEmail());
 
-        System.out.println("Before sending email");
+    // Declare OUTSIDE try block
+    String resetLink =
+            "https://bus-tracking-3-0idg.onrender.com/reset-password?token="
+                    + token;
+
+    try {
+
+        System.out.println("Reset Link: " + resetLink);
+
+        SimpleMailMessage message =
+                new SimpleMailMessage();
+
+        message.setFrom(
+                "akavi6265@gmail.com");
+
+        message.setTo(
+                user.getEmail());
+
+        message.setSubject(
+                "Password Reset Request");
+
+        message.setText(
+                "Hello " + user.getUsername()
+                        + ",\n\n"
+                        + "Click the link below to reset your password:\n\n"
+                        + resetLink
+                        + "\n\nThis link expires in 15 minutes."
+        );
+
+        System.out.println(
+                "Before sending email");
 
         mailSender.send(message);
 
-       System.out.println("After sending email");
+        System.out.println(
+                "After sending email");
 
-         model.addAttribute(
-                 "message",
-                 "Password reset link has been sent to your email."
-         );
+        model.addAttribute(
+                "message",
+                "Password reset link has been sent to your email.");
 
-     } catch (Exception e) {
+    }
+    catch (Exception e) {
 
-    System.out.println("MAIL ERROR:");
-    System.out.println("Error Type: " + e.getClass().getName());
-    System.out.println("Error Message: " + e.getMessage());
+        System.out.println("MAIL ERROR:");
+        System.out.println(
+                "Error Type: "
+                        + e.getClass().getName());
 
-    e.printStackTrace();
-    model.addAttribute(
-            "error",
-            "Email service unavailable.");
+        System.out.println(
+                "Error Message: "
+                        + e.getMessage());
 
-    model.addAttribute(
-            "resetLink",
-          resetLink);
-   
+        e.printStackTrace();
+
+        model.addAttribute(
+                "error",
+                "Email service unavailable.");
+
+        model.addAttribute(
+                "resetLink",
+                resetLink);
+    }
+
+    return "forgot-password";
 }
-
-     return "forgot-password";
- }
  @GetMapping("/reset-password")
  public String resetPasswordPage(@RequestParam String token, Model model) {
 
