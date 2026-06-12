@@ -225,7 +225,7 @@ public String processForgotPassword(
         model.addAttribute(
                 "error",
                 "Email is required!");
-
+       
         return "forgot-password";
     }
 
@@ -288,11 +288,14 @@ public String processForgotPassword(
     System.out.println("Error Message: " + e.getMessage());
 
     e.printStackTrace();
-
     model.addAttribute(
             "error",
-            "Failed to send email."
-    );
+            "Email service unavailable.");
+
+    model.addAttribute(
+            "resetLink",
+        );
+   
 }
 
      return "forgot-password";
