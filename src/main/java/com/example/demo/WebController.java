@@ -1,6 +1,7 @@
 package com.example.demo;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -87,32 +88,77 @@ public class WebController {
                     });
         }
 
+        // Dashboard Statistics
+        long totalBuses = busRepository.count();
+
+        long totalRoutes =
+                busRepository.findAll()
+                        .stream()
+                        .map(bus ->
+                                bus.getSource() + "-"
+                                + bus.getDestination())
+                        .distinct()
+                        .count();
+
+        long activeBuses =
+                busRepository.findAll()
+                        .stream()
+                        .filter(bus ->
+                                bus.getLatitude() != null &&
+                                bus.getLongitude() != null)
+                        .count();
+
+        model.addAttribute(
+                "totalBuses",
+                totalBuses);
+
+        model.addAttribute(
+                "totalRoutes",
+                totalRoutes);
+
+        model.addAttribute(
+                "activeBuses",
+                activeBuses);
+
+        // Show all buses on dashboard
+        model.addAttribute(
+                "allBuses",
+                busRepository.findAll());
+
+        // Search
         if (source != null &&
             destination != null &&
             !source.isBlank() &&
             !destination.isBlank()) {
 
-            model.addAttribute(
-                    "buses",
-                    busRepository
-                            .findBySourceIgnoreCaseAndDestinationIgnoreCase(
-                                    source,
-                                    destination));
+        	List<Bus> buses =
+        	        busRepository
+        	                .findBySourceContainingIgnoreCaseAndDestinationContainingIgnoreCase(
+        	                        source,
+        	                        destination);
+
+        	model.addAttribute("buses", buses);
         }
 
         return "dashboard";
     }
-
     /* =========================
        🚍 DRIVER – LIVE GPS UPDATE
        ========================= */
-
+    @GetMapping("/driver")
+    public String driverPage() {
+        return "driver"; // This tells Spring Boot to look for "driver.html"
+    }
     @PostMapping("/driver/update-location")
     @ResponseBody
     public ResponseEntity<String> updateBusLocation(
             @RequestParam String busNumber,
-            @RequestParam Double latitude,
-            @RequestParam Double longitude,
+            @RequestParam String busName,
+            @RequestParam Double sourceLatitude,
+            @RequestParam Double sourceLongitude,
+            @RequestParam Double destinationLatitude,
+            @RequestParam Double destinationLongitude,
+            @RequestParam String stops,
             Authentication authentication) {
 
         if (authentication == null) {
@@ -122,9 +168,7 @@ public class WebController {
                     .body("UNAUTHORIZED");
         }
 
-        Bus bus =
-                busRepository.findByBusNumber(
-                        busNumber);
+        Bus bus = busRepository.findByBusNumber(busNumber);
 
         if (bus == null) {
 
@@ -133,9 +177,24 @@ public class WebController {
                     .body("BUS_NOT_FOUND");
         }
 
-        bus.setLatitude(latitude);
+        /* BUS DETAILS */
 
-        bus.setLongitude(longitude);
+        bus.setBusName(busName);
+
+        bus.setStops(stops);
+
+        /* SOURCE LOCATION */
+
+        bus.setLatitude(sourceLatitude);
+        bus.setLongitude(sourceLongitude);
+
+        /* If you have fields in Bus entity */
+
+        bus.setSourceLatitude(sourceLatitude);
+        bus.setSourceLongitude(sourceLongitude);
+
+        bus.setDestinationLatitude(destinationLatitude);
+        bus.setDestinationLongitude(destinationLongitude);
 
         bus.setDriverUsername(
                 authentication.getName());
@@ -143,13 +202,24 @@ public class WebController {
         bus.setLastUpdated(
                 LocalDateTime.now());
 
-        // Demo Values
+        /* CURRENT STOP */
 
-        bus.setCurrentStop("Morappur");
+        if (stops != null && !stops.isBlank()) {
+
+            String[] stopArray = stops.split(",");
+
+            bus.setCurrentStop(
+                    stopArray[0].trim());
+
+            bus.setCompletedStops(0);
+
+            bus.setDistanceRemaining(
+                    (double) (stopArray.length * 5));
+        }
+
+        /* DEMO SPEED */
 
         bus.setSpeed(45.0);
-
-        bus.setDistanceRemaining(12.5);
 
         busRepository.save(bus);
 
@@ -162,31 +232,85 @@ public class WebController {
 
     @GetMapping("/bus/location")
     @ResponseBody
-    public ResponseEntity<?> getBusLocation(@RequestParam String busNumber) {
+    public ResponseEntity<?> getBusLocation(
+            @RequestParam String busNumber) {
 
-        Bus bus = busRepository.findByBusNumber(busNumber);
+        Bus bus =
+                busRepository.findByBusNumber(
+                        busNumber);
 
         if (bus == null) {
-            return ResponseEntity.badRequest().body("BUS_NOT_FOUND");
+
+            return ResponseEntity
+                    .badRequest()
+                    .body("BUS_NOT_FOUND");
         }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("busNumber", bus.getBusNumber());
-        response.put("latitude", bus.getLatitude());
-        response.put("longitude", bus.getLongitude());
-        response.put("lastUpdated", bus.getLastUpdated());
+        Map<String,Object> response =
+                new HashMap<>();
+
+        String nextStop =
+                "Destination Reached";
+
+        if(bus.getStops() != null &&
+           bus.getCompletedStops() != null){
+
+            String[] stops =
+                    bus.getStops().split(",");
+
+            if(bus.getCompletedStops()
+                    < stops.length - 1){
+
+                nextStop =
+                        stops[
+                          bus.getCompletedStops() + 1
+                        ];
+            }
+        }
+
+        response.put(
+                "busNumber",
+                bus.getBusNumber());
+
+        response.put(
+                "busName",
+                bus.getBusName());
+
+        response.put(
+                "latitude",
+                bus.getLatitude());
+
+        response.put(
+                "longitude",
+                bus.getLongitude());
+
+        response.put(
+                "currentStop",
+                bus.getCurrentStop());
+
+        response.put(
+                "nextStop",
+                nextStop);
+
+        response.put(
+                "speed",
+                bus.getSpeed());
+
+        response.put(
+                "distanceRemaining",
+                bus.getDistanceRemaining());
+
+        response.put(
+                "lastUpdated",
+                bus.getLastUpdated());
 
         return ResponseEntity.ok(response);
     }
-
     /* =========================
        PAGE ROUTES
        ========================= */
 
-    @GetMapping("/driver")
-    public String driverPage() {
-        return "driver";
-    }
+  
 
     @GetMapping("/passenger")
     public String passengerPage() {
@@ -195,137 +319,80 @@ public class WebController {
     /* =========================
     🔑 FORGOT PASSWORD
     ========================= */
-@GetMapping("/smtp-test")
-@ResponseBody
-public String smtpTest() {
-    try {
-        java.net.Socket socket =
-                new java.net.Socket("smtp.gmail.com", 587);
 
-        socket.close();
-
-        return "SMTP CONNECTED";
-    } catch (Exception e) {
-        return e.toString();
-    }
-}
  @GetMapping("/forgot-password")
  public String forgotPasswordPage() {
      return "forgot-password";
  }
-@PostMapping("/forgot-password")
-public String processForgotPassword(
-        @RequestParam(required = false) String email,
-        Model model) {
 
-    System.out.println("EMAIL RECEIVED = " + email);
+ @PostMapping("/forgot-password")
+ public String processForgotPassword(@RequestParam String email, Model model) {
 
-    if (email == null || email.isBlank()) {
+     System.out.println("Email Entered: " + email);
 
-        model.addAttribute(
-                "error",
-                "Email is required!");
+     Optional<User> optionalUser = userRepository.findByEmail(email);
 
-        return "forgot-password";
-    }
+     if (optionalUser.isEmpty()) {
+         System.out.println("User not found!");
+         model.addAttribute("error", "Email not found!");
+         return "forgot-password";
+     }
 
-    Optional<User> optionalUser =
-            userRepository.findByEmail(email);
+     User user = optionalUser.get();
 
-    if (optionalUser.isEmpty()) {
+     // Generate token
+     String token = UUID.randomUUID().toString();
 
-        System.out.println("User not found!");
+     System.out.println("Generated Token: " + token);
 
-        model.addAttribute(
-                "error",
-                "Email not found!");
+     user.setResetToken(token);
+     user.setTokenExpiry(LocalDateTime.now().plusMinutes(15));
 
-        return "forgot-password";
-    }
+     userRepository.save(user);
 
-    User user = optionalUser.get();
+     System.out.println("Token saved to database");
+     System.out.println("User Email: " + user.getEmail());
 
-    // Generate Token
-    String token = UUID.randomUUID().toString();
+     try {
 
-    System.out.println("Generated Token: " + token);
+         String resetLink =
+                 "http://localhost:5096/reset-password?token=" + token;
 
-    user.setResetToken(token);
+         System.out.println("Reset Link: " + resetLink);
 
-    user.setTokenExpiry(
-            LocalDateTime.now().plusMinutes(15));
+         SimpleMailMessage message = new SimpleMailMessage();
+         message.setFrom("akavi6265@gmail.com");
+         message.setTo(user.getEmail());
+         message.setSubject("Password Reset Request");
+         message.setText(
+                 "Hello " + user.getUsername() + ",\n\n" +
+                 "Click the link below to reset your password:\n\n" +
+                 resetLink +
+                 "\n\nThis link expires in 15 minutes."
+         );
 
-    userRepository.save(user);
+         mailSender.send(message);
 
-    System.out.println("Token saved to database");
-    System.out.println("User Email: " + user.getEmail());
+         System.out.println("Email sent successfully!");
 
-    // Declare OUTSIDE try block
-    String resetLink =
-            "https://bus-tracking-3-0idg.onrender.com/reset-password?token="
-                    + token;
+         model.addAttribute(
+                 "message",
+                 "Password reset link has been sent to your email."
+         );
 
-    try {
+     } catch (Exception e) {
 
-        System.out.println("Reset Link: " + resetLink);
+         System.out.println("MAIL ERROR:");
+         e.printStackTrace();
 
-        SimpleMailMessage message =
-                new SimpleMailMessage();
+         model.addAttribute(
+                 "error",
+                 "Failed to send email. Check Spring console."
+         );
+     }
 
-        message.setFrom(
-                "akavi6265@gmail.com");
-
-        message.setTo(
-                user.getEmail());
-
-        message.setSubject(
-                "Password Reset Request");
-
-        message.setText(
-                "Hello " + user.getUsername()
-                        + ",\n\n"
-                        + "Click the link below to reset your password:\n\n"
-                        + resetLink
-                        + "\n\nThis link expires in 15 minutes."
-        );
-
-        System.out.println(
-                "Before sending email");
-
-        mailSender.send(message);
-
-        System.out.println(
-                "After sending email");
-
-        model.addAttribute(
-                "message",
-                "Password reset link has been sent to your email.");
-
-    }
-    catch (Exception e) {
-
-        System.out.println("MAIL ERROR:");
-        System.out.println(
-                "Error Type: "
-                        + e.getClass().getName());
-
-        System.out.println(
-                "Error Message: "
-                        + e.getMessage());
-
-        e.printStackTrace();
-
-        model.addAttribute(
-                "error",
-                "Email service unavailable.");
-
-        model.addAttribute(
-                "resetLink",
-                resetLink);
-    }
-
-    return "forgot-password";
-}
+     return "forgot-password";
+ }
  @GetMapping("/reset-password")
  public String resetPasswordPage(@RequestParam String token, Model model) {
 
@@ -385,13 +452,16 @@ public String processForgotPassword(
 
      return "login";
  }
-@GetMapping("/driver/add-bus")
-public String showAddBusPage() {
-    return "driver-add-bus";
-}
+ @GetMapping("/driver/add-bus")
+ public String addBusPage() {
+
+     return "driver-add-bus";
+
+ }
  @PostMapping("/driver/add-bus")
  public String saveBusDetails(@RequestParam String busNumber,
                               @RequestParam String busName,
+                              @RequestParam String busType,
                               @RequestParam String source,
                               @RequestParam String destination,
                               @RequestParam String stops,
@@ -415,6 +485,9 @@ public String showAddBusPage() {
 
      bus.setBusNumber(busNumber);
      bus.setBusName(busName);
+
+     // NEW FIELD
+     bus.setBusType(busType);
 
      bus.setSource(source);
      bus.setDestination(destination);
@@ -454,12 +527,15 @@ public String showAddBusPage() {
      return "driver-add-bus";
  }
  @GetMapping("/track-bus")
- public String trackBus(@RequestParam String busNumber,
-                        Model model) {
+ public String trackBus(
+         @RequestParam String busNumber,
+         @RequestParam String busName,
+         Model model) {
 
-     Bus bus =
-             busRepository.findByBusNumber(
-                     busNumber);
+     Bus bus = busRepository
+             .findByBusNumberAndBusName(
+                     busNumber,
+                     busName);
 
      if (bus == null) {
 
@@ -470,72 +546,10 @@ public String showAddBusPage() {
          return "track-bus";
      }
 
-     String[] stopArray =
-             bus.getStops().split(",");
-
-     int totalStops =
-             stopArray.length;
-
-     int completed = 0;
-
-     if (bus.getCurrentStop() != null) {
-
-         for (int i = 0;
-              i < stopArray.length;
-              i++) {
-
-             if (stopArray[i]
-                     .trim()
-                     .equalsIgnoreCase(
-                             bus.getCurrentStop()
-                                .trim())) {
-
-                 completed = i + 1;
-                 break;
-             }
-         }
-     }
-
-     int progress =
-             totalStops == 0
-             ? 0
-             : (completed * 100)
-               / totalStops;
-
-     model.addAttribute(
-             "progress",
-             progress);
-
-     model.addAttribute(
-             "completedStops",
-             completed);
-
-     model.addAttribute(
-             "totalStops",
-             totalStops);
-
-     double eta = 0;
-
-     if (bus.getSpeed() != null &&
-         bus.getSpeed() > 0 &&
-         bus.getDistanceRemaining() != null) {
-
-         eta =
-                 (bus.getDistanceRemaining()
-                  / bus.getSpeed()) * 60;
-     }
-
-     model.addAttribute(
-             "eta",
-             Math.round(eta));
-
-     model.addAttribute(
-             "bus",
-             bus);
+     model.addAttribute("bus", bus);
 
      return "track-bus";
  }
-    
 }
 
 
