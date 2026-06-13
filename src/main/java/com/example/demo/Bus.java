@@ -16,7 +16,11 @@ public class Bus {
 
     private String source;
     private String destination;
+    private Double sourceLatitude;
+    private Double sourceLongitude;
 
+    private Double destinationLatitude;
+    private Double destinationLongitude;
     // Example:
     // "Guindy,Pallavaram,Chromepet,Tambaram"
     private String stops;
@@ -28,7 +32,7 @@ public class Bus {
 
     private LocalDateTime lastUpdated;
     private String currentStop;
-
+    private String busType;
     private Double speed;
     private Integer completedStops;
     private Double distanceRemaining;
@@ -144,5 +148,43 @@ public class Bus {
 
     public void setDistanceRemaining(Double distanceRemaining) {
         this.distanceRemaining = distanceRemaining;
+    }
+    public String getBusType() {
+        return busType;
+    }
+
+    public void setBusType(String busType) {
+        this.busType = busType;
+    }
+    public Double getSourceLatitude() {
+        return sourceLatitude;
+    }
+
+    public void setSourceLatitude(Double sourceLatitude) {
+        this.sourceLatitude = sourceLatitude;
+    }
+
+    public Double getSourceLongitude() {
+        return sourceLongitude;
+    }
+
+    public void setSourceLongitude(Double sourceLongitude) {
+        this.sourceLongitude = sourceLongitude;
+    }
+
+    public Double getDestinationLatitude() {
+        return destinationLatitude;
+    }
+
+    public void setDestinationLatitude(Double destinationLatitude) {
+        this.destinationLatitude = destinationLatitude;
+    }
+
+    public Double getDestinationLongitude() {
+        return destinationLongitude;
+    }
+
+    public void setDestinationLongitude(Double destinationLongitude) {
+        this.destinationLongitude = destinationLongitude;
     }
 }
