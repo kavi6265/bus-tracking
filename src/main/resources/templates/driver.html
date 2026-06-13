@@ -69,7 +69,12 @@
                             </div>
 
                             <div class="mb-3">
-                                <label for="sourceName" class="form-label fw-semibold text-success">Source Station</label>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <label for="sourceName" class="form-label fw-semibold text-success mb-0">Source Station</label>
+                                    <button type="button" id="btnGetGPS" class="btn btn-outline-success btn-sm py-0 px-2" style="font-size: 0.8rem;">
+                                        <i class="bi bi-geo-alt-fill"></i> Use GPS
+                                    </button>
+                                </div>
                                 <input type="text" id="sourceName" class="form-control bg-dark text-white border-secondary" placeholder="e.g., Chennai" required>
                                 <div class="coordinate-badge mt-1" id="lblSourceCoords">Coords: Not Loaded</div>
                             </div>
@@ -117,6 +122,29 @@
     let sourceMarker = null;
     let destMarker = null;
 
+    // Standard icons configuration
+    const sourceIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/11104/11104234.png",
+        iconSize: [32, 32], iconAnchor: [16, 32]
+    });
+
+    const destIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+        iconSize: [32, 32], iconAnchor: [16, 32]
+    });
+
+    // Helper function to dynamically auto-adjust map boundary zoom views
+    function updateMapBounds() {
+        if (sourceMarker && destMarker) {
+            const bounds = L.latLngBounds([sourceMarker.getLatLng(), destMarker.getLatLng()]);
+            map.fitBounds(bounds, { padding: [50, 50] });
+        } else if (sourceMarker) {
+            map.setView(sourceMarker.getLatLng(), 13);
+        } else if (destMarker) {
+            map.setView(destMarker.getLatLng(), 13);
+        }
+    }
+
     // Use OpenStreetMap Nominatim Engine to quickly translate string user queries into real lat/long coordinates
     async function lookupLocation(query, isSource) {
         if (!query || query.length < 3) return;
@@ -135,38 +163,94 @@
                     document.getElementById('lblSourceCoords').innerText = `Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
                     
                     if (sourceMarker) map.removeLayer(sourceMarker);
-                    sourceMarker = L.marker([lat, lng], {
-                        icon: L.icon({
-                            iconUrl: "https://cdn-icons-png.flaticon.com/512/11104/11104234.png",
-                            iconSize: [32, 32], iconAnchor: [16, 32]
-                        })
-                    }).addTo(map).bindPopup(`<b>Source:</b> ${query}`).openPopup();
+                    sourceMarker = L.marker([lat, lng], { icon: sourceIcon }).addTo(map).bindPopup(`<b>Source:</b> ${query}`).openPopup();
                 } else {
                     destLat = lat;
                     destLng = lng;
                     document.getElementById('lblDestCoords').innerText = `Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
                     
                     if (destMarker) map.removeLayer(destMarker);
-                    destMarker = L.marker([lat, lng], {
-                        icon: L.icon({
-                            iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-                            iconSize: [32, 32], iconAnchor: [16, 32]
-                        })
-                    }).addTo(map).bindPopup(`<b>Destination:</b> ${query}`).openPopup();
+                    destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map).bindPopup(`<b>Destination:</b> ${query}`).openPopup();
                 }
 
-                // Adjust map viewport boundaries to neatly encompass both layout items automatically
-                if (sourceMarker && destMarker) {
-                    const bounds = L.latLngBounds([sourceMarker.getLatLng(), destMarker.getLatLng()]);
-                    map.fitBounds(bounds, { padding: [50, 50] });
-                } else {
-                    map.setView([lat, lng], 11);
-                }
+                updateMapBounds();
             }
         } catch (error) {
             console.error("Geocoding lookup errors occurred seamlessly:", error);
         }
     }
+
+    /* ========================================================
+       DEVICE GPS POSITION EXTRACTION & REVERSE GEOMATCHING
+       ======================================================== */
+    document.getElementById('btnGetGPS').addEventListener('click', function() {
+        const btn = this;
+        
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by your browser software version.");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...`;
+
+        navigator.geolocation.getCurrentPosition(
+            async function(position) {
+                sourceLat = position.coords.latitude;
+                sourceLng = position.coords.longitude;
+                
+                // Update Badge Elements Immediately
+                document.getElementById('lblSourceCoords').innerText = `Coords: ${sourceLat.toFixed(4)}, ${sourceLng.toFixed(4)}`;
+                
+                // Render marker directly from precise coordinates
+                if (sourceMarker) map.removeLayer(sourceMarker);
+                sourceMarker = L.marker([sourceLat, sourceLng], { icon: sourceIcon }).addTo(map);
+                updateMapBounds();
+
+                // Reverse Geocoding via Nominatim to populate textual location strings nicely
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${sourceLat}&lon=${sourceLng}&zoom=18&addressdetails=1`);
+                    const data = await response.json();
+                    
+                    if (data && data.display_name) {
+                        // Truncate to a readable portion (e.g., street or suburb name if available)
+                        const cleanAddress = data.address.road || data.address.suburb || data.address.city || data.display_name.split(',')[0];
+                        document.getElementById('sourceName').value = cleanAddress;
+                        sourceMarker.bindPopup(`<b>Source (Current GPS):</b> ${cleanAddress}`).openPopup();
+                    } else {
+                        document.getElementById('sourceName').value = "Current Location";
+                        sourceMarker.bindPopup(`<b>Source:</b> Current GPS Position`).openPopup();
+                    }
+                } catch (err) {
+                    console.error("Failed handling address naming reverse lookup strings:", err);
+                    document.getElementById('sourceName').value = "Current Location";
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Use GPS`;
+                }
+            },
+            function(error) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Use GPS`;
+                
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        alert("Permission denied. Please grant location access configurations in your browser settings.");
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        alert("Location tracking details are currently unavailable from network hardware points.");
+                        break;
+                    case error.TIMEOUT:
+                        alert("Request setup to pull physical device metrics timed out.");
+                        break;
+                    default:
+                        alert("An unknown mapping hardware glitch context occurred.");
+                        break;
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    });
 
     // Capture typing events directly to update map tracking bounds gracefully
     document.getElementById('sourceName').addEventListener('blur', function() {
@@ -196,17 +280,16 @@
         dataPayload.append('destinationLatitude', destLat.toString());
         dataPayload.append('destinationLongitude', destLng.toString());
         
-        // Build the composite tracking sequence for your WebController timeline parser matches
         const routeStopsString = `${sourceNameValue}, Pass-Through Station, ${destNameValue}`;
         dataPayload.append('stops', routeStopsString);
 
-		fetch('/driver/update-location', {
-		    method: 'POST',
-		    body: dataPayload,
-		    headers: {
-		        'X-Requested-With': 'XMLHttpRequest'
-		    }
-		})
+        fetch('/driver/update-location', {
+            method: 'POST',
+            body: dataPayload,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
         .then(res => res.text())
         .then(responseToken => {
             if (responseToken === "ROUTE_SAVED" || responseToken === "SUCCESS") {
