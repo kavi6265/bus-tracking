@@ -45,7 +45,8 @@ h2{
 }
 
 input,
-textarea{
+textarea,
+select{
     width: 100%;
     padding: 12px;
     margin-top: 10px;
@@ -124,7 +125,17 @@ button:hover{
                name="busName"
                placeholder="Bus Name"
                required>
-
+			   <select name="busType" required>
+			       <option value="">Select Bus Type</option>
+			       <option value="Government">Government</option>
+			       <option value="Private">Private</option>
+			       <option value="Ordinary">Ordinary</option>
+			       <option value="Express">Express</option>
+			       <option value="Super Fast">Super Fast</option>
+			       <option value="Deluxe">Deluxe</option>
+			       <option value="AC">AC</option>
+			       <option value="Sleeper">Sleeper</option>
+			   </select>
         <input type="text"
                name="source"
                placeholder="Source Location"
