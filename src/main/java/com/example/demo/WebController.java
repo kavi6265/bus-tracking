@@ -356,7 +356,7 @@ public class WebController {
      try {
 
          String resetLink =
-                 "http://localhost:5096/reset-password?token=" + token;
+                 "https://bus-tracking-3-0idg.onrender.com/reset-password?token=" + token;
 
          System.out.println("Reset Link: " + resetLink);
 
