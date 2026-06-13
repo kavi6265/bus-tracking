@@ -42,6 +42,14 @@
             font-size: 11px;
             color: var(--muted);
         }
+        .tracking-active {
+            animation: pulse-green 2s infinite;
+        }
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
     </style>
 </head>
 <body>
@@ -50,7 +58,7 @@
     <div class="row justify-content-center">
         <div class="col-lg-10 col-12">
             
-            <div class="driver-card">
+            <div class="driver-card" id="consoleCard">
                 <h3 class="mb-4 text-center">
                     <i class="bi bi-map-fill text-success me-2"></i> Route Deployment Console
                 </h3>
@@ -79,6 +87,11 @@
                                 <div class="coordinate-badge mt-1" id="lblSourceCoords">Coords: Not Loaded</div>
                             </div>
                             
+                            <div class="mb-3">
+                                <label for="midRouteStops" class="form-label fw-semibold text-warning">Via Pass-Through Stations (Comma Separated)</label>
+                                <input type="text" id="midRouteStops" class="form-control bg-dark text-white border-secondary" placeholder="e.g., Viluppuram, Trichy">
+                            </div>
+
                             <div class="mb-4">
                                 <label for="destinationName" class="form-label fw-semibold text-info">Destination Station</label>
                                 <input type="text" id="destinationName" class="form-control bg-dark text-white border-secondary" placeholder="e.g., Madurai" required>
@@ -86,11 +99,22 @@
                             </div>
 
                             <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-success w-100 py-2 fw-bold">
-                                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Deploy Route
+                                <button type="submit" id="btnSubmit" class="btn btn-success w-100 py-2 fw-bold">
+                                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Deploy & Start Tracking
                                 </button>
                             </div>
                         </form>
+                        
+                        <div id="trackingStatusCard" class="mt-4 p-3 bg-dark border border-success rounded-3 d-none">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-success fw-bold"><i class="bi bi-broadcast text-danger"></i> Live Transmission Active</div>
+                                    <div class="text-warning small mt-1" id="radarCurrentStop">Current: Calculating...</div>
+                                    <small class="text-muted" id="lastTxTime">Waiting for first sync...</small>
+                                </div>
+                                <span class="badge bg-success" id="txCounter">0 Tx</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-md-7 col-12 d-flex flex-column">
@@ -108,9 +132,13 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Set up standard regional context coordinates (Tamil Nadu center focus layout)
-    let sourceLat = 13.0827, sourceLng = 80.2707; // Default Chennai
-    let destLat = 9.9252, destLng = 78.1198;     // Default Madurai
+    let sourceLat = 13.0827, sourceLng = 80.2707; 
+    let destLat = 9.9252, destLng = 78.1198;     
+    let liveWatchId = null;
+    let totalTransmissions = 0;
+    
+    // Memory arrays to save coordinate footprints of route checkpoints
+    let routeCoordinatesGeoRegistry = [];
 
     const map = L.map('map').setView([11.1271, 78.6569], 7);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -118,11 +146,10 @@
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // Track dynamic layer pinpoint objects
     let sourceMarker = null;
     let destMarker = null;
+    let driverLiveMarker = null;
 
-    // Standard icons configuration
     const sourceIcon = L.icon({
         iconUrl: "https://cdn-icons-png.flaticon.com/512/11104/11104234.png",
         iconSize: [32, 32], iconAnchor: [16, 32]
@@ -133,173 +160,230 @@
         iconSize: [32, 32], iconAnchor: [16, 32]
     });
 
-    // Helper function to dynamically auto-adjust map boundary zoom views
+    const busLiveIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
+        iconSize: [38, 38], iconAnchor: [19, 19]
+    });
+
     function updateMapBounds() {
-        if (sourceMarker && destMarker) {
-            const bounds = L.latLngBounds([sourceMarker.getLatLng(), destMarker.getLatLng()]);
-            map.fitBounds(bounds, { padding: [50, 50] });
-        } else if (sourceMarker) {
-            map.setView(sourceMarker.getLatLng(), 13);
-        } else if (destMarker) {
-            map.setView(destMarker.getLatLng(), 13);
+        const markers = [];
+        if (sourceMarker) markers.push(sourceMarker.getLatLng());
+        if (destMarker) markers.push(destMarker.getLatLng());
+        if (driverLiveMarker) markers.push(driverLiveMarker.getLatLng());
+        
+        if (markers.length > 1) {
+            map.fitBounds(L.latLngBounds(markers), { padding: [50, 50] });
+        } else if (markers.length === 1) {
+            map.setView(markers[0], 14);
         }
     }
 
-    // Use OpenStreetMap Nominatim Engine to quickly translate string user queries into real lat/long coordinates
     async function lookupLocation(query, isSource) {
-        if (!query || query.length < 3) return;
-        
+        if (!query || query.length < 3) return null;
         try {
             const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
             const data = await response.json();
-            
             if (data && data.length > 0) {
                 const lat = parseFloat(data[0].lat);
                 const lng = parseFloat(data[0].lon);
                 
                 if (isSource) {
-                    sourceLat = lat;
-                    sourceLng = lng;
+                    sourceLat = lat; sourceLng = lng;
                     document.getElementById('lblSourceCoords').innerText = `Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                    
                     if (sourceMarker) map.removeLayer(sourceMarker);
                     sourceMarker = L.marker([lat, lng], { icon: sourceIcon }).addTo(map).bindPopup(`<b>Source:</b> ${query}`).openPopup();
                 } else {
-                    destLat = lat;
-                    destLng = lng;
+                    destLat = lat; destLng = lng;
                     document.getElementById('lblDestCoords').innerText = `Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                    
                     if (destMarker) map.removeLayer(destMarker);
                     destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map).bindPopup(`<b>Destination:</b> ${query}`).openPopup();
                 }
-
                 updateMapBounds();
+                return { name: query, lat: lat, lng: lng };
             }
         } catch (error) {
-            console.error("Geocoding lookup errors occurred seamlessly:", error);
+            console.error("Geocoding lookup error:", error);
         }
+        return null;
     }
 
-    /* ========================================================
-       DEVICE GPS POSITION EXTRACTION & REVERSE GEOMATCHING
-       ======================================================== */
     document.getElementById('btnGetGPS').addEventListener('click', function() {
         const btn = this;
-        
         if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser software version.");
+            alert("Geolocation is not supported by your browser.");
             return;
         }
-
         btn.disabled = true;
-        btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Syncing...`;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Syncing...`;
 
         navigator.geolocation.getCurrentPosition(
             async function(position) {
                 sourceLat = position.coords.latitude;
                 sourceLng = position.coords.longitude;
-                
-                // Update Badge Elements Immediately
                 document.getElementById('lblSourceCoords').innerText = `Coords: ${sourceLat.toFixed(4)}, ${sourceLng.toFixed(4)}`;
                 
-                // Render marker directly from precise coordinates
                 if (sourceMarker) map.removeLayer(sourceMarker);
                 sourceMarker = L.marker([sourceLat, sourceLng], { icon: sourceIcon }).addTo(map);
                 updateMapBounds();
 
-                // Reverse Geocoding via Nominatim to populate textual location strings nicely
                 try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${sourceLat}&lon=${sourceLng}&zoom=18&addressdetails=1`);
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${sourceLat}&lon=${sourceLng}&zoom=18`);
                     const data = await response.json();
-                    
-                    if (data && data.display_name) {
-                        // Truncate to a readable portion (e.g., street or suburb name if available)
-                        const cleanAddress = data.address.road || data.address.suburb || data.address.city || data.display_name.split(',')[0];
-                        document.getElementById('sourceName').value = cleanAddress;
-                        sourceMarker.bindPopup(`<b>Source (Current GPS):</b> ${cleanAddress}`).openPopup();
-                    } else {
-                        document.getElementById('sourceName').value = "Current Location";
-                        sourceMarker.bindPopup(`<b>Source:</b> Current GPS Position`).openPopup();
-                    }
+                    const cleanAddress = data.address.road || data.address.suburb || data.address.city || data.display_name.split(',')[0];
+                    document.getElementById('sourceName').value = cleanAddress;
+                    sourceMarker.bindPopup(`<b>Source (GPS):</b> ${cleanAddress}`).openPopup();
                 } catch (err) {
-                    console.error("Failed handling address naming reverse lookup strings:", err);
                     document.getElementById('sourceName').value = "Current Location";
                 } finally {
                     btn.disabled = false;
                     btn.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Use GPS`;
                 }
             },
-            function(error) {
+            function() {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Use GPS`;
-                
-                switch(error.code) {
-                    case error.PERMISSION_DENIED:
-                        alert("Permission denied. Please grant location access configurations in your browser settings.");
-                        break;
-                    case error.POSITION_UNAVAILABLE:
-                        alert("Location tracking details are currently unavailable from network hardware points.");
-                        break;
-                    case error.TIMEOUT:
-                        alert("Request setup to pull physical device metrics timed out.");
-                        break;
-                    default:
-                        alert("An unknown mapping hardware glitch context occurred.");
-                        break;
-                }
+                alert("Could not pull location data metrics safely.");
             },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            { enableHighAccuracy: true, timeout: 10000 }
         );
     });
 
-    // Capture typing events directly to update map tracking bounds gracefully
-    document.getElementById('sourceName').addEventListener('blur', function() {
-        lookupLocation(this.value, true);
-    });
-
-    document.getElementById('destinationName').addEventListener('blur', function() {
-        lookupLocation(this.value, false);
-    });
+    document.getElementById('sourceName').addEventListener('blur', function() { lookupLocation(this.value, true); });
+    document.getElementById('destinationName').addEventListener('blur', function() { lookupLocation(this.value, false); });
 
     /* ========================================================
-       BACKEND TRANSMISSION DATA SYNC CONTEXT
+       LIVE TELEMETRY ENGINE WITH RADAR GEO-TRACKING MATCHING
        ======================================================== */
-    document.getElementById('routeForm').addEventListener('submit', (e) => {
+    function initiateLiveTrackingPipeline(busNumber, busName, stopsString) {
+        if (!navigator.geolocation) return;
+
+        document.getElementById('consoleCard').classList.add('tracking-active');
+        document.getElementById('trackingStatusCard').classList.remove('d-none');
+
+        liveWatchId = navigator.geolocation.watchPosition(
+            function(position) {
+                const currentLat = position.coords.latitude;
+                const currentLng = position.coords.longitude;
+                const currentSpeed = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0; 
+
+                if (driverLiveMarker) map.removeLayer(driverLiveMarker);
+                driverLiveMarker = L.marker([currentLat, currentLng], { icon: busLiveIcon })
+                                    .addTo(map)
+                                    .bindPopup(`<b>Live Bus Core Telemetry</b><br>Speed: ${currentSpeed} km/h`)
+                                    .openPopup();
+                updateMapBounds();
+
+                // 📐 RADAR CHECKPOINT MATH: Find the chronologically closest station to light up on the timeline 
+                let matchedCurrentStop = routeCoordinatesGeoRegistry[0] ? routeCoordinatesGeoRegistry[0].name : "Unknown Station";
+                let shortestDistanceCalculated = Infinity;
+
+                routeCoordinatesGeoRegistry.forEach(checkpoint => {
+                    // Quick distance approximation formula for smooth rendering execution loops
+                    const diffLat = currentLat - checkpoint.lat;
+                    const diffLng = currentLng - checkpoint.lng;
+                    const approximateDistanceSquared = (diffLat * diffLat) + (diffLng * diffLng);
+
+                    if (approximateDistanceSquared < shortestDistanceCalculated) {
+                        shortestDistanceCalculated = approximateDistanceSquared;
+                        matchedCurrentStop = checkpoint.name;
+                    }
+                });
+
+                // Display localized computed stop inside driver view layout
+                if(document.getElementById('radarCurrentStop')) {
+                    document.getElementById('radarCurrentStop').innerText = `Nearest Stop: ${matchedCurrentStop}`;
+                }
+
+                // Build modern form-urlencoded stream payload
+                const streamPayload = new URLSearchParams();
+                streamPayload.append('busNumber', busNumber);
+                streamPayload.append('busName', busName);
+                streamPayload.append('sourceLatitude', currentLat.toString());   
+                streamPayload.append('sourceLongitude', currentLng.toString());
+                streamPayload.append('destinationLatitude', destLat.toString());
+                streamPayload.append('destinationLongitude', destLng.toString());
+                streamPayload.append('stops', stopsString);
+                streamPayload.append('currentStop', matchedCurrentStop); // Injects matching node cleanly to backend
+                streamPayload.append('speed', currentSpeed.toString());
+
+                fetch('/driver/update-location', {
+                    method: 'POST',
+                    body: streamPayload,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.text())
+                .then(status => {
+                    totalTransmissions++;
+                    document.getElementById('txCounter').innerText = `${totalTransmissions} Tx`;
+                    document.getElementById('lastTxTime').innerText = `Sent: ${new Date().toLocaleTimeString()}`;
+                })
+                .catch(err => console.error("Telemetry pipeline delivery failure:", err));
+            },
+            function(err) { console.error("Hardware tracking issue:", err); },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        );
+    }
+
+    // Geocode array converter for the full route timeline tracking database strings
+    async function preCompileTimelineGeocodeFootprints(source, viaStopsString, destination) {
+        routeCoordinatesGeoRegistry = [];
+        
+        // Add Source Station coordinates to the registry
+        routeCoordinatesGeoRegistry.push({ name: source, lat: sourceLat, lng: sourceLng });
+
+        // Parse and geocode middle stops sequentially
+        if (viaStopsString) {
+            const individualStops = viaStopsString.split(',');
+            for (let rawStop of individualStops) {
+                const cleanStop = rawStop.trim();
+                if (cleanStop.length > 0) {
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanStop)}&limit=1`);
+                        const parsedData = await res.json();
+                        if (parsedData && parsedData.length > 0) {
+                            routeCoordinatesGeoRegistry.push({
+                                name: cleanStop,
+                                lat: parseFloat(parsedData[0].lat),
+                                lng: parseFloat(parsedData[0].lon)
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Failed to map mid-stop geocode tracking index:", cleanStop, e);
+                    }
+                }
+            }
+        }
+
+        // Add Destination Station coordinates to finish array mapping
+        routeCoordinatesGeoRegistry.push({ name: destination, lat: destLat, lng: destLng });
+    }
+
+    document.getElementById('routeForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const busNumValue = document.getElementById('busNumber').value.trim();
         const busNameValue = document.getElementById('busName').value.trim();
         const sourceNameValue = document.getElementById('sourceName').value.trim();
+        const midStopsValue = document.getElementById('midRouteStops').value.trim();
         const destNameValue = document.getElementById('destinationName').value.trim();
 
-        const dataPayload = new URLSearchParams();
-        dataPayload.append('busNumber', busNumValue);
-        dataPayload.append('busName', busNameValue);
-        dataPayload.append('sourceLatitude', sourceLat.toString());
-        dataPayload.append('sourceLongitude', sourceLng.toString());
-        dataPayload.append('destinationLatitude', destLat.toString());
-        dataPayload.append('destinationLongitude', destLng.toString());
-        
-        const routeStopsString = `${sourceNameValue}, Pass-Through Station, ${destNameValue}`;
-        dataPayload.append('stops', routeStopsString);
+        // Standardized array string generation
+        let combinedStopsArrayString = sourceNameValue;
+        if(midStopsValue.length > 0) combinedStopsArrayString += `, ${midStopsValue}`;
+        combinedStopsArrayString += `, ${destNameValue}`;
 
-        fetch('/driver/update-location', {
-            method: 'POST',
-            body: dataPayload,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(res => res.text())
-        .then(responseToken => {
-            if (responseToken === "ROUTE_SAVED" || responseToken === "SUCCESS") {
-                alert("Route metrics deployed successfully into system memory!");
-                window.location.href = "/dashboard";
-            } else {
-                alert("Server saved data but returned status code token: " + responseToken);
-            }
-        })
-        .catch(err => console.error("Upstream deployment transmission failures occurred:", err));
+        // Turn button into loading state while coordinates download
+        document.getElementById('btnSubmit').disabled = true;
+        document.getElementById('btnSubmit').innerHTML = `<span class="spinner-border spinner-border-sm"></span> Compiling Route Matrix...`;
+
+        // Wait for asynchronous geocoding layout maps to verify coordinate arrays completely
+        await preCompileTimelineGeocodeFootprints(sourceNameValue, midStopsValue, destNameValue);
+
+        // Turn live background tracking tracking pipeline instantly active
+        document.getElementById('btnSubmit').innerHTML = `<i class="bi bi-broadcast"></i> Engine Online & Tracking...`;
+        initiateLiveTrackingPipeline(busNumValue, busNameValue, combinedStopsArrayString);
+        
+        alert("Live synchronization pipeline active! Keep this dashboard tab open during transit.");
     });
 </script>
 
