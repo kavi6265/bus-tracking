@@ -18,11 +18,7 @@
             --muted:#94a3b8;
         }
 
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-        }
+        *{ margin:0; padding:0; box-sizing:border-box; }
 
         body{
             background:var(--dark);
@@ -31,9 +27,6 @@
             padding-bottom:100px;
         }
 
-        /* =========================
-           TOP NAVBAR
-           ========================= */
         .top-bar{
             background:#111827;
             display:flex;
@@ -46,31 +39,11 @@
             box-shadow:0 4px 20px rgba(0,0,0,.3);
         }
 
-        .back-btn{
-            color:white;
-            text-decoration:none;
-            font-size:22px;
-        }
+        .back-btn{ color:white; text-decoration:none; font-size:22px; }
+        .back-btn:hover{ color:var(--primary); }
+        .top-title{ font-size:18px; font-weight:600; }
+        .main-container{ padding:20px; }
 
-        .back-btn:hover{
-            color:var(--primary);
-        }
-
-        .top-title{
-            font-size:18px;
-            font-weight:600;
-        }
-
-        /* =========================
-           CONTAINER
-           ========================= */
-        .main-container{
-            padding:20px;
-        }
-
-        /* =========================
-           GLASS CARD
-           ========================= */
         .glass-card{
             background: rgba(255,255,255,.05);
             backdrop-filter: blur(10px);
@@ -81,29 +54,9 @@
             transition:.3s;
         }
 
-        .glass-card:hover{
-            transform: translateY(-2px);
-        }
-
-        /* =========================
-           BUS HEADER
-           ========================= */
-        .bus-header{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            flex-wrap:wrap;
-        }
-
-        .bus-number{
-            font-size:30px;
-            font-weight:700;
-        }
-
-        .bus-number i{
-            color:var(--primary);
-        }
-
+        .bus-header{ display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; }
+        .bus-number{ font-size:30px; font-weight:700; }
+        .bus-number i{ color:var(--primary); }
         .live-badge{
             background: linear-gradient(135deg, #22c55e, #16a34a);
             color:white;
@@ -113,143 +66,31 @@
             font-weight:600;
         }
 
-        .route-box{
-            background:#172033;
-            border-radius:15px;
-            padding:15px;
-            margin-top:15px;
-        }
+        .route-box{ background:#172033; border-radius:15px; padding:15px; margin-top:15px; }
+        .route-box i{ color:var(--primary); }
+        .stat-card{ background:#172033; border-radius:16px; padding:20px; text-align:center; height:100%; transition:.3s; }
+        .stat-card:hover{ transform: translateY(-4px); }
+        .stat-card i{ font-size:30px; color:var(--primary); margin-bottom:10px; }
+        .stat-card h5{ font-weight:700; }
+        .stat-card small{ color:var(--muted); }
+        .section-title{ font-size:22px; font-weight:600; margin-bottom:15px; }
+        .progress-wrapper{ background:#172033; border-radius:15px; padding:20px; }
+        .progress{ height:20px; border-radius:20px; }
+        .progress-bar{ background: linear-gradient(135deg, #22c55e, #16a34a); }
 
-        .route-box i{
-            color:var(--primary);
-        }
-
-        /* =========================
-           STAT CARDS
-           ========================= */
-        .stat-card{
-            background:#172033;
-            border-radius:16px;
-            padding:20px;
-            text-align:center;
-            height:100%;
-            transition:.3s;
-        }
-
-        .stat-card:hover{
-            transform: translateY(-4px);
-        }
-
-        .stat-card i{
-            font-size:30px;
-            color:var(--primary);
-            margin-bottom:10px;
-        }
-
-        .stat-card h5{
-            font-weight:700;
-        }
-
-        .stat-card small{
-            color:var(--muted);
-        }
-
-        /* =========================
-           TITLES
-           ========================= */
-        .section-title{
-            font-size:22px;
-            font-weight:600;
-            margin-bottom:15px;
-        }
-
-        /* =========================
-           PROGRESS BAR
-           ========================= */
-        .progress-wrapper{
-            background:#172033;
-            border-radius:15px;
-            padding:20px;
-        }
-
-        .progress{
-            height:20px;
-            border-radius:20px;
-        }
-
-        .progress-bar{
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-        }
-
-        /* =========================
-           TIMELINE
-           ========================= */
-        .timeline{
-            position:relative;
-            margin-left:10px;
-        }
-
-        .timeline::before{
-            content:"";
-            position:absolute;
-            left:7px;
-            top:0;
-            width:3px;
-            height:100%;
-            background:#334155;
-        }
-
-        .timeline-stop{
-            display:flex;
-            gap:20px;
-            margin-bottom:25px;
-        }
-
-        .timeline-dot{
-            width:16px;
-            height:16px;
-            border-radius:50%;
-            background:#64748b;
-            z-index:2;
-            margin-top:5px;
-        }
-
-        .active-dot{
-            background:var(--primary);
-            box-shadow: 0 0 15px var(--primary);
-        }
-
-        .completed-dot{
-            background:#3b82f6;
-        }
-
-        .timeline-content{
-            flex:1;
-            background:#172033;
-            border-radius:12px;
-            padding:12px;
-        }
-
-        .current-stop{
-            color:var(--primary);
-            font-weight:600;
-        }
-
-        .refresh-card{
-            display:flex;
-            align-items:center;
-            gap:10px;
-            color:var(--primary);
-            font-weight:600;
-        }
+        .timeline{ position:relative; margin-left:10px; }
+        .timeline::before{ content:""; position:absolute; left:7px; top:0; width:3px; height:100%; background:#334155; }
+        .timeline-stop{ display:flex; gap:20px; margin-bottom:25px; }
+        .timeline-dot{ width:16px; height:16px; border-radius:50%; background:#64748b; z-index:2; margin-top:5px; transition: 0.3s ease; }
+        .active-dot{ background:var(--primary); box-shadow: 0 0 15px var(--primary); }
+        .completed-dot{ background:#3b82f6; }
+        .timeline-content{ flex:1; background:#172033; border-radius:12px; padding:12px; }
+        .current-stop{ color:var(--primary); font-weight:600; }
+        .refresh-card{ display:flex; align-items:center; gap:10px; color:var(--primary); font-weight:600; }
 
         @media(max-width:768px){
-            .bus-number{
-                font-size:22px;
-            }
-            .top-title{
-                font-size:16px;
-            }
+            .bus-number{ font-size:22px; }
+            .top-title{ font-size:16px; }
         }
     </style>
 </head>
@@ -259,7 +100,7 @@
         <a th:href="@{/dashboard}" class="back-btn">
             <i class="bi bi-arrow-left"></i>
         </a>
-        <div class="top-title">Live Bus Tracking</div>
+        <div class="top-title">Live Bus Tracking Matrix</div>
         <i class="bi bi-three-dots-vertical"></i>
     </div>
 
@@ -338,11 +179,11 @@
                 <i class="bi bi-activity"></i> Journey Progress
             </div>
             <div class="progress">
-                <div class="progress-bar" role="progressbar" th:style="'width:' + ${progress} + '%'"></div>
+                <div class="progress-bar" id="progressBar" role="progressbar" th:style="'width:' + ${progress} + '%'"></div>
             </div>
             <div class="mt-2">
                 <small class="text-secondary">
-                    Route Completion: <span th:text="${progress}">60</span>%
+                    Route Completion: <span id="progressText" th:text="${progress}">60</span>%
                 </small>
             </div>
         </div>
@@ -352,15 +193,17 @@
                 <i class="bi bi-signpost-split-fill"></i> Route Timeline
             </div>
             <div class="timeline">
-                <div class="timeline-stop" th:each="stop, stat : ${#strings.arraySplit(bus.stops, ',')}">
-                    <div class="timeline-dot" th:classappend="${stop == bus.currentStop} ? ' active-dot' : (${stat.index < completedStops} ? ' completed-dot' : '')"></div>
+                <div class="timeline-stop" th:each="stop, stat : ${#strings.arraySplit(bus.stops, ',')}" th:data-stop="${#strings.trim(stop)}">
+                    <div class="timeline-dot" th:classappend="${#strings.trim(stop) == bus.currentStop} ? ' active-dot' : (${stat.index < completedStops} ? ' completed-dot' : '')"></div>
                     <div class="timeline-content">
-                        <strong th:text="${stop}"></strong>
-                        <div th:if="${stop == bus.currentStop}" class="current-stop mt-1">
-                            <i class="bi bi-bus-front-fill"></i> Current Bus Location
-                        </div>
-                        <div th:if="${stat.index < completedStops && stop != bus.currentStop}" class="text-info mt-1">
-                            <i class="bi bi-check-circle-fill"></i> Completed
+                        <strong th:text="${#strings.trim(stop)}"></strong>
+                        <div class="status-badge-container mt-1">
+                            <div th:if="${#strings.trim(stop) == bus.currentStop}" class="current-stop">
+                                <i class="bi bi-bus-front-fill"></i> Current Bus Location
+                            </div>
+                            <div th:if="${stat.index < completedStops && #strings.trim(stop) != bus.currentStop}" class="text-info">
+                                <i class="bi bi-check-circle-fill"></i> Completed
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -371,68 +214,32 @@
             <i class="bi bi-arrow-repeat"></i> Live updates every 5 seconds
         </div>
 
-        <div class="glass-card">
-            <div class="section-title">
-                <i class="bi bi-signpost-split-fill"></i> Journey Information
-            </div>
-            <div class="row">
-                <div class="col-md-4 col-12 mb-3">
-                    <div class="stat-card">
-                        <i class="bi bi-geo-alt-fill"></i>
-                        <h5 id="infoCurrentStop" th:text="${bus.currentStop}"></h5>
-                        <small>Current Location</small>
-                    </div>
-                </div>
-
-                <div class="col-md-4 col-12 mb-3">
-                    <div class="stat-card">
-                        <i class="bi bi-arrow-right-circle-fill"></i>
-                        <h5 id="nextStop">Loading...</h5>
-                        <small>Next Stop</small>
-                    </div>
-                </div>
-
-                <div class="col-md-4 col-12 mb-3">
-                    <div class="stat-card">
-                        <i class="bi bi-flag-fill"></i>
-                        <h5 th:text="${bus.destination}"></h5>
-                        <small>Final Destination</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script th:inline="javascript">
-        /* ==========================
-           LIVE AJAX BACKGROUND UPDATE
-           ========================= */
         const busNumber = [[${bus.busNumber}]];
+        const busName = [[${bus.busName}]];
 
+        /* ========================================================
+           INTERVAL SYNC POLLING CONTROLLER
+           ======================================================== */
         setInterval(() => {
             fetch('/bus/location?busNumber=' + encodeURIComponent(busNumber))
             .then(response => response.json())
             .then(data => {
+                
+                // 1. Label and Stat Card Synchronization Updates
                 if(data.currentStop){
                     if(document.getElementById("statusCurrentStop")) document.getElementById("statusCurrentStop").innerText = data.currentStop;
-                    if(document.getElementById("infoCurrentStop")) document.getElementById("infoCurrentStop").innerText = data.currentStop;
                 }
-                
-                if(data.nextStop){
-                    if(document.getElementById("nextStop")) document.getElementById("nextStop").innerText = data.nextStop;
-                }
-                
                 if(data.speed != null){
                     if(document.getElementById("speed")) document.getElementById("speed").innerText = data.speed;
                 }
-
                 if(data.distanceRemaining != null){
                     if(document.getElementById("distanceRemaining")) document.getElementById("distanceRemaining").innerText = data.distanceRemaining;
                 }
-
                 if(data.lastUpdated){
                     if(document.getElementById("lastUpdated")) {
                         let cleanTime = typeof data.lastUpdated === 'object' ? 
@@ -440,10 +247,45 @@
                         document.getElementById("lastUpdated").innerText = cleanTime.split('.')[0];
                     }
                 }
+
+                // 2. Journey Progress Bar Update
+                if(data.progress != null) {
+                    if(document.getElementById("progressBar")) document.getElementById("progressBar").style.width = data.progress + '%';
+                    if(document.getElementById("progressText")) document.getElementById("progressText").innerText = data.progress;
+                }
+
+                // 3. Dynamic Timeline UI Manipulation Matrix
+                if(data.currentStop) {
+                    const currentStopName = data.currentStop.trim();
+                    const timelineStops = document.querySelectorAll('.timeline-stop');
+                    let passedCurrent = false;
+
+                    timelineStops.forEach(stopElement => {
+                        const stopName = stopElement.getAttribute('data-stop');
+                        const dot = stopElement.querySelector('.timeline-dot');
+                        const badgeContainer = stopElement.querySelector('.status-badge-container');
+
+                        // Clean out existing styles
+                        dot.className = "timeline-dot";
+                        badgeContainer.innerHTML = "";
+
+                        if (stopName === currentStopName) {
+                            // Active Stop Status
+                            dot.classList.add('active-dot');
+                            badgeContainer.innerHTML = `<div class="current-stop"><i class="bi bi-bus-front-fill"></i> Current Bus Location</div>`;
+                            passedCurrent = true; 
+                        } else if (!passedCurrent) {
+                            // Completed Stop Status
+                            dot.classList.add('completed-dot');
+                            badgeContainer.innerHTML = `<div class="text-info"><i class="bi bi-check-circle-fill"></i> Completed</div>`;
+                        } else {
+                            // Upcoming Stop (No extra styling or tags added)
+                            dot.classList.remove('active-dot', 'completed-dot');
+                        }
+                    });
+                }
             })
-            .catch(error => {
-                console.error("Tracking Update Connection Error:", error);
-            });
+            .catch(error => console.error("Tracking connection matrix dropped:", error));
         }, 5000);
     </script>
 </body>
