@@ -28,5 +28,19 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Dashboard"
+    },
+    {
+      "src": "/screenshots/track-bus.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Live Bus Tracking"
+    }
   ]
 }
