@@ -30,6 +30,7 @@ public class SecurityConfig {
                     "/manifest.json",
                     "/sw.js",
                     "/icons/**",
+                    "/screenshots/**",
                     "/driver/update-location",
                     "/bus/location"
                 ).permitAll()
