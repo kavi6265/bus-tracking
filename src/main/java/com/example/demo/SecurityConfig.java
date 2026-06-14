@@ -29,7 +29,7 @@ public class SecurityConfig {
                     "/driver/add-bus",
                     "/manifest.json",
                     "/sw.js",
-                    "/icons/",
+                    "/icons/**",
                     "/driver/update-location",
                     "/bus/location"
                 ).permitAll()
