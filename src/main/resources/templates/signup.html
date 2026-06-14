@@ -120,6 +120,16 @@
 <a th:href="@{/login}">
     Already have an account? Login
 </a>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => console.log('Service Worker Registered'))
+                .catch(err => console.error('Service Worker Error:', err));
+        });
+    }
+    </script>
 </body>
 </html>
