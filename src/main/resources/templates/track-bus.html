@@ -204,6 +204,18 @@
                             <div th:if="${stat.index < completedStops && #strings.trim(stop) != bus.currentStop}" class="text-info">
                                 <i class="bi bi-check-circle-fill"></i> Completed
                             </div>
+							<div class="timeline-stop">
+							    <div class="timeline-dot active-dot"></div>
+
+							    <div class="timeline-content">
+							        <strong>🚍 Live Bus Location</strong>
+
+							        <div id="liveGpsLocation"
+							             class="current-stop">
+							            Waiting for GPS...
+							        </div>
+							    </div>
+							</div>
                         </div>
                     </div>
                 </div>
@@ -253,9 +265,24 @@
                     if(document.getElementById("progressBar")) document.getElementById("progressBar").style.width = data.progress + '%';
                     if(document.getElementById("progressText")) document.getElementById("progressText").innerText = data.progress;
                 }
+				if(data.latitude && data.longitude){
 
+				    document.getElementById("liveGpsLocation").innerHTML =
+				        `
+				        Latitude : ${parseFloat(data.latitude).toFixed(6)}
+				        <br>
+				        Longitude : ${parseFloat(data.longitude).toFixed(6)}
+				        `;
+				}
+				if(data.currentStop){
+
+				    document.getElementById("liveGpsLocation")
+				        .innerHTML =
+				        "🚍 Current Location : " +
+				        data.currentStop;
+				}
                 // 3. Dynamic Timeline UI Manipulation Matrix
-                if(data.currentStop) {
+             /*   if(data.currentStop) {
                     const currentStopName = data.currentStop.trim();
                     const timelineStops = document.querySelectorAll('.timeline-stop');
                     let passedCurrent = false;
@@ -281,7 +308,7 @@
                         } else {
                             // Upcoming Stop (No extra styling or tags added)
                             dot.classList.remove('active-dot', 'completed-dot');
-                        }
+                        }*/
                     });
                 }
             })
