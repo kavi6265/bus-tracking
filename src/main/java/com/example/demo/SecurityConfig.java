@@ -27,6 +27,9 @@ public class SecurityConfig {
                     "/reset-password",
                     "/track-bus",
                     "/driver/add-bus",
+                    "/manifest.json",
+                    "/sw.js",
+                    "/icons/",
                     "/driver/update-location",
                     "/bus/location"
                 ).permitAll()
