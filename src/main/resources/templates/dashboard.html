@@ -1004,7 +1004,17 @@ body{
 	.bindPopup(
 	    "Smart Bus Tracker"
 	);
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => console.log('Service Worker Registered'))
+                .catch(err => console.error('Service Worker Error:', err));
+        });
+    }
+    </script>
 	</script>
 
 	</body>
