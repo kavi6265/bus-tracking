@@ -122,7 +122,7 @@
                         <label class="form-label fw-semibold text-secondary">Live Route Preview Anchors</label>
                         <div id="map"></div>
                     </div>
-                    
+					
                 </div>
 
             </div>
@@ -134,265 +134,259 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // Geoapify Configuration
-   // Geoapify Configuration
-const GEOAPIFY_API_KEY = "91d42b9ca4dd43afaa47d2621398a92c";
-
-let sourceLat = 13.0827, sourceLng = 80.2707; 
-let destLat = 9.9252, destLng = 78.1198;     
-let liveWatchId = null;
-let totalTransmissions = 0;
-
-// Memory arrays to save coordinate footprints of route checkpoints
-let routeCoordinatesGeoRegistry = [];
-
-const map = L.map('map').setView([11.1271, 78.6569], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 19,
-    attribution: '© OpenStreetMap contributors'
-}).addTo(map);
-
-let sourceMarker = null;
-let destMarker = null;
-let driverLiveMarker = null;
-
-const sourceIcon = L.icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/11104/11104234.png",
-    iconSize: [32, 32], iconAnchor: [16, 32]
-});
-
-const destIcon = L.icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-    iconSize: [32, 32], iconAnchor: [16, 32]
-});
-
-const busLiveIcon = L.icon({
-    iconUrl: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
-    iconSize: [38, 38], iconAnchor: [19, 19]
-});
-
-function updateMapBounds() {
-    const markers = [];
-    if (sourceMarker) markers.push(sourceMarker.getLatLng());
-    if (destMarker) markers.push(destMarker.getLatLng());
-    if (driverLiveMarker) markers.push(driverLiveMarker.getLatLng());
+    let sourceLat = 13.0827, sourceLng = 80.2707; 
+    let destLat = 9.9252, destLng = 78.1198;     
+    let liveWatchId = null;
+    let totalTransmissions = 0;
     
-    if (markers.length > 1) {
-        map.fitBounds(L.latLngBounds(markers), { padding: [50, 50] });
-    } else if (markers.length === 1) {
-        map.setView(markers[0], 14);
-    }
-}
+    // Memory arrays to save coordinate footprints of route checkpoints
+    let routeCoordinatesGeoRegistry = [];
 
-async function lookupLocation(query, isSource) {
-    if (!query || query.length < 3) return null;
-    try {
-        const response = await fetch(`https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(query)}&limit=1&apiKey=${GEOAPIFY_API_KEY}`);
-        const data = await response.json();
+    const map = L.map('map').setView([11.1271, 78.6569], 7);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let sourceMarker = null;
+    let destMarker = null;
+    let driverLiveMarker = null;
+
+    const sourceIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/11104/11104234.png",
+        iconSize: [32, 32], iconAnchor: [16, 32]
+    });
+
+    const destIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
+        iconSize: [32, 32], iconAnchor: [16, 32]
+    });
+
+    const busLiveIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
+        iconSize: [38, 38], iconAnchor: [19, 19]
+    });
+
+    function updateMapBounds() {
+        const markers = [];
+        if (sourceMarker) markers.push(sourceMarker.getLatLng());
+        if (destMarker) markers.push(destMarker.getLatLng());
+        if (driverLiveMarker) markers.push(driverLiveMarker.getLatLng());
         
-        if (data && data.features && data.features.length > 0) {
-            const lng = parseFloat(data.features[0].geometry.coordinates[0]);
-            const lat = parseFloat(data.features[0].geometry.coordinates[1]);
-            
-            if (isSource) {
-                sourceLat = lat; sourceLng = lng;
-                document.getElementById('lblSourceCoords').innerText = `Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                if (sourceMarker) map.removeLayer(sourceMarker);
-                sourceMarker = L.marker([lat, lng], { icon: sourceIcon }).addTo(map).bindPopup(`<b>Source:</b> ${query}`).openPopup();
-            } else {
-                destLat = lat; destLng = lng;
-                document.getElementById('lblDestCoords').innerText = `Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                if (destMarker) map.removeLayer(destMarker);
-                destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map).bindPopup(`<b>Destination:</b> ${query}`).openPopup();
-            }
-            updateMapBounds();
-            return { name: query, lat: lat, lng: lng };
+        if (markers.length > 1) {
+            map.fitBounds(L.latLngBounds(markers), { padding: [50, 50] });
+        } else if (markers.length === 1) {
+            map.setView(markers[0], 14);
         }
-    } catch (error) {
-        console.error("Geoapify Geocoding lookup error:", error);
     }
-    return null;
-}
 
-document.getElementById('btnGetGPS').addEventListener('click', function() {
-    const btn = this;
-    if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
-        return;
-    }
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Syncing...`;
-
-    navigator.geolocation.getCurrentPosition(
-        async function(position) {
-            sourceLat = position.coords.latitude;
-            sourceLng = position.coords.longitude;
-            document.getElementById('lblSourceCoords').innerText = `Coords: ${sourceLat.toFixed(4)}, ${sourceLng.toFixed(4)}`;
-            
-            if (sourceMarker) map.removeLayer(sourceMarker);
-            sourceMarker = L.marker([sourceLat, sourceLng], { icon: sourceIcon }).addTo(map);
-            updateMapBounds();
-
-            try {
-                const response = await fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${sourceLat}&lon=${sourceLng}&apiKey=${GEOAPIFY_API_KEY}`);
-                const data = await response.json();
+    async function lookupLocation(query, isSource) {
+        if (!query || query.length < 3) return null;
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+            const data = await response.json();
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
                 
-                if (data && data.features && data.features.length > 0) {
-                    const props = data.features[0].properties;
-                    const cleanAddress = props.street || props.suburb || props.city || props.name || "Current Location";
+                if (isSource) {
+                    sourceLat = lat; sourceLng = lng;
+                    document.getElementById('lblSourceCoords').innerText = `Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                    if (sourceMarker) map.removeLayer(sourceMarker);
+                    sourceMarker = L.marker([lat, lng], { icon: sourceIcon }).addTo(map).bindPopup(`<b>Source:</b> ${query}`).openPopup();
+                } else {
+                    destLat = lat; destLng = lng;
+                    document.getElementById('lblDestCoords').innerText = `Coords: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                    if (destMarker) map.removeLayer(destMarker);
+                    destMarker = L.marker([lat, lng], { icon: destIcon }).addTo(map).bindPopup(`<b>Destination:</b> ${query}`).openPopup();
+                }
+                updateMapBounds();
+                return { name: query, lat: lat, lng: lng };
+            }
+        } catch (error) {
+            console.error("Geocoding lookup error:", error);
+        }
+        return null;
+    }
+
+    document.getElementById('btnGetGPS').addEventListener('click', function() {
+        const btn = this;
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by your browser.");
+            return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Syncing...`;
+
+        navigator.geolocation.getCurrentPosition(
+            async function(position) {
+                sourceLat = position.coords.latitude;
+                sourceLng = position.coords.longitude;
+                document.getElementById('lblSourceCoords').innerText = `Coords: ${sourceLat.toFixed(4)}, ${sourceLng.toFixed(4)}`;
+                
+                if (sourceMarker) map.removeLayer(sourceMarker);
+                sourceMarker = L.marker([sourceLat, sourceLng], { icon: sourceIcon }).addTo(map);
+                updateMapBounds();
+
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${sourceLat}&lon=${sourceLng}&zoom=18`);
+                    const data = await response.json();
+                    const cleanAddress = data.address.road || data.address.suburb || data.address.city || data.display_name.split(',')[0];
                     document.getElementById('sourceName').value = cleanAddress;
                     sourceMarker.bindPopup(`<b>Source (GPS):</b> ${cleanAddress}`).openPopup();
-                } else {
+                } catch (err) {
                     document.getElementById('sourceName').value = "Current Location";
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Use GPS`;
                 }
-            } catch (err) {
-                document.getElementById('sourceName').value = "Current Location";
-            } finally {
+            },
+            function() {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Use GPS`;
-            }
-        },
-        function() {
-            btn.disabled = false;
-            btn.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Use GPS`;
-            alert("Could not pull location data metrics safely.");
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-    );
-});
+                alert("Could not pull location data metrics safely.");
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
 
-document.getElementById('sourceName').addEventListener('blur', function() { lookupLocation(this.value, true); });
-document.getElementById('destinationName').addEventListener('blur', function() { lookupLocation(this.value, false); });
+    document.getElementById('sourceName').addEventListener('blur', function() { lookupLocation(this.value, true); });
+    document.getElementById('destinationName').addEventListener('blur', function() { lookupLocation(this.value, false); });
 
-/* ========================================================
-   LIVE TELEMETRY ENGINE WITH RADAR GEO-TRACKING MATCHING
-   ======================================================== */
-function initiateLiveTrackingPipeline(busNumber, busName, stopsString, initialSourceStation) {
-    if (!navigator.geolocation) return;
+    /* ========================================================
+       LIVE TELEMETRY ENGINE WITH RADAR GEO-TRACKING MATCHING
+       ======================================================== */
+    function initiateLiveTrackingPipeline(busNumber, busName, stopsString) {
+        if (!navigator.geolocation) return;
 
-    document.getElementById('consoleCard').classList.add('tracking-active');
-    document.getElementById('trackingStatusCard').classList.remove('d-none');
+        document.getElementById('consoleCard').classList.add('tracking-active');
+        document.getElementById('trackingStatusCard').classList.remove('d-none');
 
-    // Set the initial stop UI text immediately to the Source Station
-    if(document.getElementById('radarCurrentStop')) {
-        document.getElementById('radarCurrentStop').innerText = `Nearest Stop: ${initialSourceStation}`;
+        liveWatchId = navigator.geolocation.watchPosition(
+            function(position) {
+                const currentLat = position.coords.latitude;
+                const currentLng = position.coords.longitude;
+                const currentSpeed = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0; 
+
+                if (driverLiveMarker) map.removeLayer(driverLiveMarker);
+                driverLiveMarker = L.marker([currentLat, currentLng], { icon: busLiveIcon })
+                                    .addTo(map)
+                                    .bindPopup(`<b>Live Bus Core Telemetry</b><br>Speed: ${currentSpeed} km/h`)
+                                    .openPopup();
+                updateMapBounds();
+
+                // 📐 RADAR CHECKPOINT MATH: Find the chronologically closest station to light up on the timeline 
+                let matchedCurrentStop = routeCoordinatesGeoRegistry[0] ? routeCoordinatesGeoRegistry[0].name : "Unknown Station";
+                let shortestDistanceCalculated = Infinity;
+
+                routeCoordinatesGeoRegistry.forEach(checkpoint => {
+                    // Quick distance approximation formula for smooth rendering execution loops
+                    const diffLat = currentLat - checkpoint.lat;
+                    const diffLng = currentLng - checkpoint.lng;
+                    const approximateDistanceSquared = (diffLat * diffLat) + (diffLng * diffLng);
+
+                    if (approximateDistanceSquared < shortestDistanceCalculated) {
+                        shortestDistanceCalculated = approximateDistanceSquared;
+                        matchedCurrentStop = checkpoint.name;
+                    }
+                });
+
+                // Display localized computed stop inside driver view layout
+                if(document.getElementById('radarCurrentStop')) {
+                    document.getElementById('radarCurrentStop').innerText = `Nearest Stop: ${matchedCurrentStop}`;
+                }
+
+                // Build modern form-urlencoded stream payload
+                const streamPayload = new URLSearchParams();
+                streamPayload.append('busNumber', busNumber);
+                streamPayload.append('busName', busName);
+                streamPayload.append('sourceLatitude', currentLat.toString());   
+                streamPayload.append('sourceLongitude', currentLng.toString());
+                streamPayload.append('destinationLatitude', destLat.toString());
+                streamPayload.append('destinationLongitude', destLng.toString());
+                streamPayload.append('stops', stopsString);
+                streamPayload.append('currentStop', matchedCurrentStop); // Injects matching node cleanly to backend
+                streamPayload.append('speed', currentSpeed.toString());
+
+                fetch('/driver/update-location', {
+                    method: 'POST',
+                    body: streamPayload,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.text())
+                .then(status => {
+                    totalTransmissions++;
+                    document.getElementById('txCounter').innerText = `${totalTransmissions} Tx`;
+                    document.getElementById('lastTxTime').innerText = `Sent: ${new Date().toLocaleTimeString()}`;
+                })
+                .catch(err => console.error("Telemetry pipeline delivery failure:", err));
+            },
+            function(err) { console.error("Hardware tracking issue:", err); },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        );
     }
 
-    liveWatchId = navigator.geolocation.watchPosition(
-        function(position) {
-            const currentLat = position.coords.latitude;
-            const currentLng = position.coords.longitude;
-            const currentSpeed = position.coords.speed ? Math.round(position.coords.speed * 3.6) : 0; 
+    // Geocode array converter for the full route timeline tracking database strings
+    async function preCompileTimelineGeocodeFootprints(source, viaStopsString, destination) {
+        routeCoordinatesGeoRegistry = [];
+        
+        // Add Source Station coordinates to the registry
+        routeCoordinatesGeoRegistry.push({ name: source, lat: sourceLat, lng: sourceLng });
 
-            if (driverLiveMarker) map.removeLayer(driverLiveMarker);
-            driverLiveMarker = L.marker([currentLat, currentLng], { icon: busLiveIcon })
-                                .addTo(map)
-                                .bindPopup(`<b>Live Bus Core Telemetry</b><br>Speed: ${currentSpeed} km/h`)
-                                .openPopup();
-            updateMapBounds();
-
-            // 📐 Fallback defaults to the initial Source Station if registry hasn't populated yet
-            let matchedCurrentStop = routeCoordinatesGeoRegistry[0] ? routeCoordinatesGeoRegistry[0].name : initialSourceStation;
-            let shortestDistanceCalculated = Infinity;
-
-            routeCoordinatesGeoRegistry.forEach(checkpoint => {
-                const diffLat = currentLat - checkpoint.lat;
-                const diffLng = currentLng - checkpoint.lng;
-                const approximateDistanceSquared = (diffLat * diffLat) + (diffLng * diffLng);
-
-                if (approximateDistanceSquared < shortestDistanceCalculated) {
-                    shortestDistanceCalculated = approximateDistanceSquared;
-                    matchedCurrentStop = checkpoint.name;
-                }
-            });
-
-            if(document.getElementById('radarCurrentStop')) {
-                document.getElementById('radarCurrentStop').innerText = `Nearest Stop: ${matchedCurrentStop}`;
-            }
-
-            const streamPayload = new URLSearchParams();
-            streamPayload.append('busNumber', busNumber);
-            streamPayload.append('busName', busName);
-            streamPayload.append('sourceLatitude', currentLat.toString());   
-            streamPayload.append('sourceLongitude', currentLng.toString());
-            streamPayload.append('destinationLatitude', destLat.toString());
-            streamPayload.append('destinationLongitude', destLng.toString());
-            streamPayload.append('stops', stopsString);
-            streamPayload.append('currentStop', matchedCurrentStop); 
-            streamPayload.append('speed', currentSpeed.toString());
-
-            fetch('/driver/update-location', {
-                method: 'POST',
-                body: streamPayload,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            })
-            .then(res => res.text())
-            .then(status => {
-                totalTransmissions++;
-                document.getElementById('txCounter').innerText = `${totalTransmissions} Tx`;
-                document.getElementById('lastTxTime').innerText = `Sent: ${new Date().toLocaleTimeString()}`;
-            })
-            .catch(err => console.error("Telemetry pipeline delivery failure:", err));
-        },
-        function(err) { console.error("Hardware tracking issue:", err); },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-    );
-}
-
-async function preCompileTimelineGeocodeFootprints(source, viaStopsString, destination) {
-    routeCoordinatesGeoRegistry = [];
-    routeCoordinatesGeoRegistry.push({ name: source, lat: sourceLat, lng: sourceLng });
-
-    if (viaStopsString) {
-        const individualStops = viaStopsString.split(',');
-        for (let rawStop of individualStops) {
-            const cleanStop = rawStop.trim();
-            if (cleanStop.length > 0) {
-                try {
-                    const res = await fetch(`https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(cleanStop)}&limit=1&apiKey=${GEOAPIFY_API_KEY}`);
-                    const parsedData = await res.json();
-                    if (parsedData && parsedData.features && parsedData.features.length > 0) {
-                        routeCoordinatesGeoRegistry.push({
-                            name: cleanStop,
-                            lat: parseFloat(parsedData.features[0].geometry.coordinates[1]),
-                            lng: parseFloat(parsedData.features[0].geometry.coordinates[0])
-                        });
+        // Parse and geocode middle stops sequentially
+        if (viaStopsString) {
+            const individualStops = viaStopsString.split(',');
+            for (let rawStop of individualStops) {
+                const cleanStop = rawStop.trim();
+                if (cleanStop.length > 0) {
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanStop)}&limit=1`);
+                        const parsedData = await res.json();
+                        if (parsedData && parsedData.length > 0) {
+                            routeCoordinatesGeoRegistry.push({
+                                name: cleanStop,
+                                lat: parseFloat(parsedData[0].lat),
+                                lng: parseFloat(parsedData[0].lon)
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Failed to map mid-stop geocode tracking index:", cleanStop, e);
                     }
-                } catch (e) {
-                    console.error("Failed to map mid-stop geocode tracking index:", cleanStop, e);
                 }
             }
         }
+
+        // Add Destination Station coordinates to finish array mapping
+        routeCoordinatesGeoRegistry.push({ name: destination, lat: destLat, lng: destLng });
     }
 
-    routeCoordinatesGeoRegistry.push({ name: destination, lat: destLat, lng: destLng });
-}
+    document.getElementById('routeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-document.getElementById('routeForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
+        const busNumValue = document.getElementById('busNumber').value.trim();
+        const busNameValue = document.getElementById('busName').value.trim();
+        const sourceNameValue = document.getElementById('sourceName').value.trim();
+        const midStopsValue = document.getElementById('midRouteStops').value.trim();
+        const destNameValue = document.getElementById('destinationName').value.trim();
 
-    const busNumValue = document.getElementById('busNumber').value.trim();
-    const busNameValue = document.getElementById('busName').value.trim();
-    const sourceNameValue = document.getElementById('sourceName').value.trim();
-    const midStopsValue = document.getElementById('midRouteStops').value.trim();
-    const destNameValue = document.getElementById('destinationName').value.trim();
+        // Standardized array string generation
+        let combinedStopsArrayString = sourceNameValue;
+        if(midStopsValue.length > 0) combinedStopsArrayString += `, ${midStopsValue}`;
+        combinedStopsArrayString += `, ${destNameValue}`;
 
-    let combinedStopsArrayString = sourceNameValue;
-    if(midStopsValue.length > 0) combinedStopsArrayString += `, ${midStopsValue}`;
-    combinedStopsArrayString += `, ${destNameValue}`;
+        // Turn button into loading state while coordinates download
+        document.getElementById('btnSubmit').disabled = true;
+        document.getElementById('btnSubmit').innerHTML = `<span class="spinner-border spinner-border-sm"></span> Compiling Route Matrix...`;
 
-    document.getElementById('btnSubmit').disabled = true;
-    document.getElementById('btnSubmit').innerHTML = `<span class="spinner-border spinner-border-sm"></span> Compiling Route Matrix...`;
+        // Wait for asynchronous geocoding layout maps to verify coordinate arrays completely
+        await preCompileTimelineGeocodeFootprints(sourceNameValue, midStopsValue, destNameValue);
 
-    await preCompileTimelineGeocodeFootprints(sourceNameValue, midStopsValue, destNameValue);
-
-    document.getElementById('btnSubmit').innerHTML = `<i class="bi bi-broadcast"></i> Engine Online & Tracking...`;
-    
-    // Pass 'sourceNameValue' into the tracking pipeline to set it as the default current stop anchor
-    initiateLiveTrackingPipeline(busNumValue, busNameValue, combinedStopsArrayString, sourceNameValue);
-    
-    alert("Live synchronization pipeline active! Keep this dashboard tab open during transit.");
-});
+        // Turn live background tracking tracking pipeline instantly active
+        document.getElementById('btnSubmit').innerHTML = `<i class="bi bi-broadcast"></i> Engine Online & Tracking...`;
+        initiateLiveTrackingPipeline(busNumValue, busNameValue, combinedStopsArrayString);
+        
+        alert("Live synchronization pipeline active! Keep this dashboard tab open during transit.");
+    });
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -405,5 +399,6 @@ if ('serviceWorker' in navigator) {
     });
 }
 </script>
+
 </body>
 </html>
