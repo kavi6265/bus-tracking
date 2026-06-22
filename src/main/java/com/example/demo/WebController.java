@@ -421,9 +421,9 @@ public class WebController {
         return mapPlaceRepository.save(place);
     }
 
-    @PutMapping("/api/places/{id}")
+   @PutMapping("/api/places/{id}")
     @ResponseBody
-    public ResponseEntity<MapPlace> updatePlace(@PathVariable Long id, @RequestBody MapPlace updatedDetails) {
+    public ResponseEntity<MapPlace> updatePlace(@PathVariable String id, @RequestBody MapPlace updatedDetails) {
         return mapPlaceRepository.findById(id)
                 .map(place -> {
                     place.setName(updatedDetails.getName());
@@ -436,7 +436,7 @@ public class WebController {
 
     @DeleteMapping("/api/places/{id}")
     @ResponseBody
-    public ResponseEntity<Void> deletePlace(@PathVariable Long id) {
+    public ResponseEntity<Void> deletePlace(@PathVariable String id) {
         if (mapPlaceRepository.existsById(id)) {
             mapPlaceRepository.deleteById(id);
             return ResponseEntity.ok().build();
