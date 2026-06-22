@@ -74,6 +74,20 @@
             margin-top: 10px;
             color: #555;
         }
+		.loader-spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid #f3f3f3;
+    border-top: 6px solid #4a90e2;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
 
         /* Button styling matching the Register button */
         button {
@@ -138,7 +152,7 @@
             Logged out successfully.
         </div>
 
-        <form th:action="@{/login}" method="post">
+        <form id="loginForm" th:action="@{/login}" method="post">
             <label for="username">Username</label>
             <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus/>
             
@@ -156,7 +170,7 @@
 		<div class="forgot-password">
 		        <a th:href="@{/forgot-password}">Forgot Password?</a>
 		    </div>
-		<div id="loader" style="
+	<div id="loader" style="
 display:none;
 position:fixed;
 top:0;
@@ -167,13 +181,30 @@ background:rgba(0,0,0,0.7);
 z-index:9999;
 justify-content:center;
 align-items:center;
+flex-direction:column;
 ">
-    <div class="spinner-border text-success" style="width:4rem;height:4rem;"></div>
+
+    <div class="loader-spinner"></div>
+
+    <div style="
+        color:white;
+        margin-top:15px;
+        font-size:18px;
+        font-weight:bold;
+    ">
+        Signing In...
+    </div>
+
 </div>
     </div>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+		document.getElementById("loginForm").addEventListener("submit", function () {
+    showLoader();
+
+    document.querySelector("button[type='submit']").disabled = true;
+});
 		function showLoader() {
     document.getElementById("loader").style.display = "flex";
 }
