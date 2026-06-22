@@ -1,22 +1,21 @@
 package com.example.demo;
 
-import jakarta.persistence.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "map_places")
+@Document(collection = "map_places") // ✅ Tells Spring Boot this belongs in MongoDB
 public class MapPlace {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id // ✅ MongoDB uses String or ObjectId for IDs easily
+    private String id;
     
     private String name;
     private Double latitude;
     private Double longitude;
 
     // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public String getId() { return id; }
+    public void setId(String id) { this.id = id; }
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
     public Double getLatitude() { return latitude; }
