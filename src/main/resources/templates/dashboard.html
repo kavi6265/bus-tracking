@@ -200,35 +200,6 @@
             opacity:.9;
         }
 
-        .bus-card{
-            background:#172033;
-            border-radius:18px;
-            padding:18px;
-            margin-bottom:15px;
-            transition:.3s;
-            border:1px solid rgba(255,255,255,.05);
-        }
-
-        .bus-card:hover{
-            transform: translateY(-4px);
-        }
-
-        .bus-header{
-            display:flex;
-            justify-content:space-between;
-            align-items:center;
-            flex-wrap:wrap;
-        }
-
-        .bus-number{
-            font-size:18px;
-            font-weight:700;
-        }
-
-        .route-text{
-            color:var(--muted);
-        }
-
         #map{
             height:350px;
             border-radius:15px;
@@ -396,7 +367,7 @@
         <div class="section-title">
             <i class="bi bi-map-fill text-success"></i> Global Shared Map
         </div>
-        <p class="text-muted small m-0"><i class="bi bi-info-circle"></i> Click any point to create, click markers to edit or delete them.</p>
+        <p class="text-muted small m-0"><i class="bi bi-info-circle"></i> Click any point to create. Click markers to edit or delete them.</p>
         <div id="map"></div>
     </div>
 </div>
@@ -431,18 +402,18 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ==========================================
-   SERVER SYNCHRONIZATION (CRUD CONNECTORS)
+   SERVER SYNCHRONIZATION (MONGO CRUD CONNECTORS)
    ========================================== */
 async function fetchGlobalPlaces() {
     try {
         const response = await fetch('/api/places');
         const points = await response.json();
-        markerLayerGroup.clearLayers(); // Avoid duplicates on reload
+        markerLayerGroup.clearLayers(); 
         points.forEach(point => {
             renderSharedMarker(point.id, point.name, point.latitude, point.longitude);
         });
     } catch (err) {
-        console.error("Error fetching places:", err);
+        console.error("Error fetching data:", err);
     }
 }
 
@@ -485,11 +456,11 @@ function renderSharedMarker(id, name, lat, lng) {
             <hr style="margin: 6px 0;">
             <div id="view-mode-${formId}">
                 <button onclick="toggleEditMode('${formId}')" class="btn btn-sm btn-outline-primary w-100 mb-1" style="font-size:11px; padding:2px;"><i class="bi bi-pencil"></i> Edit Name</button>
-                <button onclick="confirmDelete(${id})" class="btn btn-sm btn-outline-danger w-100" style="font-size:11px; padding:2px;"><i class="bi bi-trash"></i> Remove</button>
+                <button onclick="confirmDelete('${id}')" class="btn btn-sm btn-outline-danger w-100" style="font-size:11px; padding:2px;"><i class="bi bi-trash"></i> Remove</button>
             </div>
             <div id="edit-mode-${formId}" class="d-none">
                 <input type="text" id="input-${formId}" class="form-control form-control-sm border text-dark bg-light mb-1" value="${name}" style="padding:2px 5px; font-size:12px;">
-                <button onclick="submitUpdate(${id}, '${formId}', ${lat}, ${lng})" class="btn btn-sm btn-success w-100 mb-1" style="font-size:11px; padding:2px;">Save</button>
+                <button onclick="submitUpdate('${id}', '${formId}', ${lat}, ${lng})" class="btn btn-sm btn-success w-100 mb-1" style="font-size:11px; padding:2px;">Save</button>
                 <button onclick="toggleEditMode('${formId}')" class="btn btn-sm btn-secondary w-100" style="font-size:11px; padding:2px;">Cancel</button>
             </div>
         </div>
@@ -501,7 +472,6 @@ function renderSharedMarker(id, name, lat, lng) {
     });
 }
 
-/* UI Helper Toggles */
 window.toggleEditMode = function(formId) {
     document.getElementById(`view-mode-${formId}`).classList.toggle('d-none');
     document.getElementById(`edit-mode-${formId}`).classList.toggle('d-none');
