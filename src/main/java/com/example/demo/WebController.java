@@ -33,6 +33,9 @@ public class WebController {
     @Autowired
     private JavaMailSender mailSender;
 
+    @Autowired
+    private MapPlaceRepository mapPlaceRepository;
+
     /* =========================
        AUTH PAGES
        ========================= */
