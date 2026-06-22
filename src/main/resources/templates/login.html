@@ -73,23 +73,6 @@
             color: #555;
         }
 
-        /* Spinner Styling */
-        .loader-spinner {
-            width: 60px;
-            height: 60px;
-            border: 6px solid rgba(255, 255, 255, 0.2);
-            border-top: 6px solid #4a90e2;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        }
-
-        @keyframes spin {
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
         button {
             width: 100%;
             background-color: var(--primary-color);
@@ -142,6 +125,15 @@
         .forgot-password {
             margin-top: 10px;
         }
+
+        /* 3D Canvas Box Sizing */
+        #threeBus {
+            width: 300px;
+            height: 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -180,15 +172,14 @@
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.85);
+        background: rgba(18, 18, 18, 0.92);
         z-index: 9999;
         justify-content: center;
         align-items: center;
         flex-direction: column;
     ">
-        <div class="loader-spinner"></div>
         <div id="threeBus"></div>
-        <h3 style="color:white; font-family: sans-serif; margin-top: 10px;">Starting Bus Tracker...</h3>
+        <h3 style="color: white; font-weight: 500; font-family: sans-serif; margin-top: 5px; letter-spacing: 0.5px;">Starting Bus Tracker...</h3>
     </div>
 
     <script type="module">
@@ -196,54 +187,61 @@
         import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
 
-        renderer.setSize(200, 200); // Scaled down to fit elegantly next to the spinner
+        renderer.setSize(300, 300);
         document.getElementById("threeBus").appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 3));
-        const light = new THREE.DirectionalLight(0xffffff, 3);
-        light.position.set(5, 5, 5);
+        // Lighting settings
+        scene.add(new THREE.AmbientLight(0xffffff, 2.5));
+        const light = new THREE.DirectionalLight(0xffffff, 2.5);
+        light.position.set(5, 8, 5);
         scene.add(light);
 
-        let bus; 
+        let bus = null; 
         const loader = new GLTFLoader();
 
         loader.load(
             '/models/bus.glb',
             function(gltf) {
-                console.log("Bus Loaded");
+                console.log("Bus Model Loaded Successfully");
                 bus = gltf.scene;
                 scene.add(bus);
+                
+                // Optional: Adjust model base position if it scales weirdly
+                bus.position.set(0, 0, 0); 
             },
             undefined,
             function(error) {
-                console.error("GLB Error", error);
+                console.error("Failed to load GLB model:", error);
             }
         );
 
-        camera.position.z = 8;
+        camera.position.z = 7;
+        camera.position.y = 2; // Tilt look slightly downward
+        camera.lookAt(0, 0, 0);
 
+        // Core Render loop
         function animate() {
             requestAnimationFrame(animate);
-            if(bus) {
-                bus.rotation.y += 0.01;
+            if (bus) {
+                bus.rotation.y += 0.015; // Continuous spinning speed
             }
             renderer.render(scene, camera);
         }
         animate();
 
-        // Helper function to show loader overlay
+        // Safe global window assignment for module scope execution
         window.showLoader = function() {
             document.getElementById("loader").style.display = "flex";
-        }
+        };
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Trigger loader when form is submitted
+        // Trigger screen block & 3D render when form submits
         document.getElementById("loginForm").addEventListener("submit", function() {
             if (typeof window.showLoader === "function") {
                 window.showLoader();
@@ -252,7 +250,7 @@
             }
         });
 
-        // Service Worker Registration
+        // Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
