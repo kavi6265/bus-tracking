@@ -406,4 +406,38 @@ public class WebController {
         model.addAttribute("bus", bus);
         return "track-bus";
     }
+      @GetMapping("/api/places")
+    @ResponseBody
+    public List<MapPlace> getAllPlaces() {
+        return mapPlaceRepository.findAll();
+    }
+
+    @PostMapping("/api/places")
+    @ResponseBody
+    public MapPlace savePlace(@RequestBody MapPlace place) {
+        return mapPlaceRepository.save(place);
+    }
+
+    @PutMapping("/api/places/{id}")
+    @ResponseBody
+    public ResponseEntity<MapPlace> updatePlace(@PathVariable Long id, @RequestBody MapPlace updatedDetails) {
+        return mapPlaceRepository.findById(id)
+                .map(place -> {
+                    place.setName(updatedDetails.getName());
+                    place.setLatitude(updatedDetails.getLatitude());
+                    place.setLongitude(updatedDetails.getLongitude());
+                    return ResponseEntity.ok(mapPlaceRepository.save(place));
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/api/places/{id}")
+    @ResponseBody
+    public ResponseEntity<Void> deletePlace(@PathVariable Long id) {
+        if (mapPlaceRepository.existsById(id)) {
+            mapPlaceRepository.deleteById(id);
+            return ResponseEntity.ok().build();
+        }
+        return ResponseEntity.notFound().build();
+    }
 }
