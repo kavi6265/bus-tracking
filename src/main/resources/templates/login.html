@@ -181,121 +181,80 @@ align-items:center;
 flex-direction:column;
 ">
 
+    <div id="loader">
     <div id="threeBus"></div>
-
-    <h3 style="color:white">
-        Connecting To Bus Tracker...
-    </h3>
-
+    <h3>Starting Bus Tracker...</h3>
 </div>
     </div>
 	<script type="module">
-import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-const loader = document.getElementById("loader");
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
-    75,
-    300 / 300,
-    0.1,
-    1000
+75,
+1,
+0.1,
+1000
 );
 
 const renderer = new THREE.WebGLRenderer({
-    alpha: true,
-    antialias: true
+alpha:true,
+antialias:true
 });
 
-renderer.setSize(300, 300);
-document.getElementById("threeBus").appendChild(renderer.domElement);
+renderer.setSize(400,400);
 
-// Bus Body
-const busGroup = new THREE.Group();
+document
+.getElementById("threeBus")
+.appendChild(renderer.domElement);
 
-const body = new THREE.Mesh(
-    new THREE.BoxGeometry(4, 1.5, 1.8),
-    new THREE.MeshPhongMaterial({ color: 0x22c55e })
+scene.add(new THREE.AmbientLight(0xffffff,3));
+
+const light = new THREE.DirectionalLight(
+0xffffff,
+3
 );
 
-busGroup.add(body);
+light.position.set(5,5,5);
 
-// Roof
-const roof = new THREE.Mesh(
-    new THREE.BoxGeometry(2.5, 0.8, 1.8),
-    new THREE.MeshPhongMaterial({ color: 0x16a34a })
-);
-
-roof.position.y = 1;
-busGroup.add(roof);
-
-// Wheels
-const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.4, 32);
-
-function createWheel(x, z) {
-    const wheel = new THREE.Mesh(
-        wheelGeometry,
-        new THREE.MeshPhongMaterial({ color: 0x111111 })
-    );
-
-    wheel.rotation.z = Math.PI / 2;
-    wheel.position.set(x, -1, z);
-
-    busGroup.add(wheel);
-
-    return wheel;
-}
-
-const w1 = createWheel(-1.5, 1);
-const w2 = createWheel(1.5, 1);
-const w3 = createWheel(-1.5, -1);
-const w4 = createWheel(1.5, -1);
-
-scene.add(busGroup);
-
-const light = new THREE.DirectionalLight(0xffffff, 2);
-light.position.set(5, 5, 5);
 scene.add(light);
 
-scene.add(new THREE.AmbientLight(0xffffff, 1));
+const loader = new GLTFLoader();
 
-camera.position.z = 8;
+loader.load(
+'/models/bus.glb',
 
-function animate() {
-    requestAnimationFrame(animate);
+function(gltf){
 
-    busGroup.rotation.y += 0.01;
+const bus = gltf.scene;
 
-    w1.rotation.x += 0.15;
-    w2.rotation.x += 0.15;
-    w3.rotation.x += 0.15;
-    w4.rotation.x += 0.15;
+bus.scale.set(2,2,2);
 
-    renderer.render(scene, camera);
+scene.add(bus);
+
+function animate(){
+
+requestAnimationFrame(animate);
+
+bus.rotation.y += 0.01;
+
+renderer.render(
+scene,
+camera
+);
+
 }
 
 animate();
 
-window.showLoader = () => {
-    loader.style.display = "flex";
-};
-
-window.hideLoader = () => {
-    loader.style.display = "none";
-};
-		document.getElementById("loginForm")
-.addEventListener("submit", () => {
-    showLoader();
-});
-		
-		function showLoader() {
-    document.getElementById("loader").style.display = "flex";
 }
+);
 
-function hideLoader() {
-    document.getElementById("loader").style.display = "none";
-}
+camera.position.z = 8;
+
 </script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
