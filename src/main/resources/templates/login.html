@@ -173,38 +173,122 @@
 	<div id="loader" style="
 display:none;
 position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.7);
+inset:0;
+background:rgba(0,0,0,.9);
 z-index:9999;
 justify-content:center;
 align-items:center;
 flex-direction:column;
 ">
 
-    <div class="loader-spinner"></div>
+    <div id="threeBus"></div>
 
-    <div style="
-        color:white;
-        margin-top:15px;
-        font-size:18px;
-        font-weight:bold;
-    ">
-        Signing In...
-    </div>
+    <h3 style="color:white">
+        Connecting To Bus Tracker...
+    </h3>
 
 </div>
     </div>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+	<script type="module">
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 
-    <script>
-		document.getElementById("loginForm").addEventListener("submit", function () {
-    showLoader();
+const loader = document.getElementById("loader");
 
-    document.querySelector("button[type='submit']").disabled = true;
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+    75,
+    300 / 300,
+    0.1,
+    1000
+);
+
+const renderer = new THREE.WebGLRenderer({
+    alpha: true,
+    antialias: true
 });
+
+renderer.setSize(300, 300);
+document.getElementById("threeBus").appendChild(renderer.domElement);
+
+// Bus Body
+const busGroup = new THREE.Group();
+
+const body = new THREE.Mesh(
+    new THREE.BoxGeometry(4, 1.5, 1.8),
+    new THREE.MeshPhongMaterial({ color: 0x22c55e })
+);
+
+busGroup.add(body);
+
+// Roof
+const roof = new THREE.Mesh(
+    new THREE.BoxGeometry(2.5, 0.8, 1.8),
+    new THREE.MeshPhongMaterial({ color: 0x16a34a })
+);
+
+roof.position.y = 1;
+busGroup.add(roof);
+
+// Wheels
+const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.4, 32);
+
+function createWheel(x, z) {
+    const wheel = new THREE.Mesh(
+        wheelGeometry,
+        new THREE.MeshPhongMaterial({ color: 0x111111 })
+    );
+
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(x, -1, z);
+
+    busGroup.add(wheel);
+
+    return wheel;
+}
+
+const w1 = createWheel(-1.5, 1);
+const w2 = createWheel(1.5, 1);
+const w3 = createWheel(-1.5, -1);
+const w4 = createWheel(1.5, -1);
+
+scene.add(busGroup);
+
+const light = new THREE.DirectionalLight(0xffffff, 2);
+light.position.set(5, 5, 5);
+scene.add(light);
+
+scene.add(new THREE.AmbientLight(0xffffff, 1));
+
+camera.position.z = 8;
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    busGroup.rotation.y += 0.01;
+
+    w1.rotation.x += 0.15;
+    w2.rotation.x += 0.15;
+    w3.rotation.x += 0.15;
+    w4.rotation.x += 0.15;
+
+    renderer.render(scene, camera);
+}
+
+animate();
+
+window.showLoader = () => {
+    loader.style.display = "flex";
+};
+
+window.hideLoader = () => {
+    loader.style.display = "none";
+};
+		document.getElementById("loginForm")
+.addEventListener("submit", () => {
+    showLoader();
+});
+		
 		function showLoader() {
     document.getElementById("loader").style.display = "flex";
 }
@@ -212,6 +296,11 @@ flex-direction:column;
 function hideLoader() {
     document.getElementById("loader").style.display = "none";
 }
+</script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+		
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
