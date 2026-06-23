@@ -187,8 +187,8 @@
 
         .form-control {
             background: #1f2937;
-            border: 1px solid rgba(255, 255, 255, .05);
-            color: white;
+            border: 1px solid rgba(255, 255, 255, .1);
+            color: #ffffff !important;
             padding: 12px;
             font-size: 14px;
             border-radius: 10px;
@@ -196,14 +196,19 @@
 
         .form-control:focus {
             background: #1f2937;
-            color: white;
+            color: #ffffff !important;
             border-color: var(--primary);
             box-shadow: none;
         }
 
+        .form-control::placeholder {
+            color: #94a3b8 !important;
+            opacity: 0.7;
+        }
+
         .input-group-text {
             background: #1f2937;
-            border: 1px solid rgba(255, 255, 255, .05);
+            border: 1px solid rgba(255, 255, 255, .1);
             color: var(--primary);
         }
 
@@ -218,7 +223,6 @@
             font-size: 15px;
         }
 
-        /* Fully Exploded Details Layout Card Components */
         .bus-result-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.06);
@@ -233,6 +237,12 @@
             align-items: center;
             margin-top: 8px;
             font-size: 13px;
+        }
+
+        /* CUSTOM CLASS TO FIX THE DIM VISIBILITY OF CARD LABELS */
+        .label-text {
+            color: #94a3b8 !important; 
+            font-weight: 500;
         }
 
         .bottom-nav {
@@ -412,16 +422,16 @@
 
     <div th:if="${param.source != null and param.destination != null}" class="glass-card">
         <h5 class="mb-3 text-success fw-bold">
-            <i class="bi bi-bus-front-fill me-1"></i> Available Buses Founds
+            <i class="bi bi-bus-front-fill me-1"></i> Available Buses Found
         </h5>
-        
+         
         <div th:if="${#lists.isEmpty(buses)}" class="alert alert-warning border-0 bg-dark text-warning rounded-3 small m-0">
             <i class="bi bi-exclamation-triangle-fill me-1"></i> No matching buses available for this route corridor at the moment.
         </div>
 
         <div th:unless="${#lists.isEmpty(buses)}">
             <div th:each="bus : ${buses}" class="bus-result-card">
-                
+                 
                 <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
                         <span class="badge bg-success mb-1" th:text="${bus.busType}">ORDINARY</span>
@@ -438,24 +448,24 @@
                 <hr class="my-2" style="border-color: rgba(255,255,255,0.1);">
 
                 <div class="detail-row">
-                    <span class="text-muted"><i class="bi bi-signpost-split me-1 text-info"></i> Base Hub Route:</span>
+                    <span class="label-text"><i class="bi bi-signpost-split me-1 text-info"></i> Base Hub Route:</span>
                     <span class="text-white fw-semibold">
                         <span th:text="${bus.source}">Source</span> ➔ <span th:text="${bus.destination}">Destination</span>
                     </span>
                 </div>
 
                 <div class="detail-row">
-                    <span class="text-muted"><i class="bi bi-geo-alt-fill me-1 text-warning"></i> Current Position:</span>
-                    <span class="text-warning fw-boldth" th:text="${bus.currentStop}">At Station Terminal</span>
+                    <span class="label-text"><i class="bi bi-geo-alt-fill me-1 text-warning"></i> Current Position:</span>
+                    <span class="text-warning fw-bold" th:text="${bus.currentStop}">At Station Terminal</span>
                 </div>
 
                 <div class="detail-row" th:if="${bus.distanceRemaining != null}">
-                    <span class="text-muted"><i class="bi bi-hourglass-split me-1 text-danger"></i> Distance Remaining:</span>
+                    <span class="label-text"><i class="bi bi-hourglass-split me-1 text-danger"></i> Distance Remaining:</span>
                     <span class="text-white" th:text="${bus.distanceRemaining + ' km'}">0.0 km</span>
                 </div>
 
                 <div class="mt-2 small bg-dark p-2 rounded border border-secondary">
-                    <div class="text-muted mb-1" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Corridor Intermediate Stops Sequence:</div>
+                    <div class="label-text mb-1" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Corridor Intermediate Stops Sequence:</div>
                     <div class="text-white-50 text-truncate" th:text="${bus.stops}">Stop1, Stop2, Stop3</div>
                 </div>
 
@@ -495,7 +505,7 @@ function getUserLocation() {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14`);
             const data = await res.json();
             const placeName = data.address.city || data.address.town || data.address.village || "Erode";
-            
+             
             locText.innerText = data.display_name.split(',').slice(0, 3).join(',');
             document.getElementById("source-input").value = placeName;
         } catch(e) { 
