@@ -45,7 +45,6 @@
             z-index: 1;
         }
         
-        /* Hide the ugly text instructions box that Leaflet Routing Machine auto-generates */
         .leaflet-routing-container {
             display: none !important;
         }
@@ -110,9 +109,13 @@
                                 <div class="coordinate-badge mt-1" id="lblDestCoords">Coords: Not Loaded</div>
                             </div>
 
-                            <div class="d-flex gap-2">
+                            <div class="d-flex flex-column gap-2">
                                 <button type="submit" id="btnSubmit" class="btn btn-success w-100 py-2 fw-bold">
                                     <i class="bi bi-cloud-arrow-up-fill me-2"></i> Deploy & Start Tracking
+                                </button>
+                                
+                                <button type="button" id="btnAddNewPlace" class="btn btn-outline-warning w-100 py-2 fw-semibold">
+                                    <i class="bi bi-plus-circle-fill me-2"></i> Mark & Name Current Location
                                 </button>
                             </div>
                         </form>
@@ -133,9 +136,7 @@
                         <label class="form-label fw-semibold text-secondary">Live Route Preview Anchors</label>
                         <div id="map"></div>
                     </div>
-					
                 </div>
-
             </div>
             
         </div>
@@ -152,8 +153,7 @@
     let totalTransmissions = 0;
     
     let routeCoordinatesGeoRegistry = [];
-    
-    // Hold reference to the routing controller instance
+    let customPlacesLayerGroup = L.layerGroup();
     let routingControl = null;
 
     const map = L.map('map').setView([11.1271, 78.6569], 7);
@@ -162,6 +162,8 @@
         maxZoom: 19,
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
+
+    customPlacesLayerGroup.addTo(map);
 
     setTimeout(() => {
         map.invalidateSize();
@@ -186,11 +188,20 @@
         iconSize: [38, 38], iconAnchor: [19, 19]
     });
 
+    const customPlaceIcon = L.icon({
+        iconUrl: "https://cdn-icons-png.flaticon.com/512/2776/2776067.png",
+        iconSize: [32, 32], iconAnchor: [16, 32]
+    });
+
     function updateMapBounds() {
         const markers = [];
         if (sourceMarker) markers.push(sourceMarker.getLatLng());
         if (destMarker) markers.push(destMarker.getLatLng());
         if (driverLiveMarker) markers.push(driverLiveMarker.getLatLng());
+        
+        customPlacesLayerGroup.eachLayer(layer => {
+            if (layer instanceof L.Marker) markers.push(layer.getLatLng());
+        });
         
         if (markers.length > 1) {
             map.fitBounds(L.latLngBounds(markers), { padding: [50, 50] });
@@ -199,30 +210,26 @@
         }
     }
 
-    // 🗺️ Smart Road-Snapping Routing Highlight Engine
     function drawRouteLine() {
-        // Clear any old instances to prevent map memory leaks
         if (routingControl) {
             map.removeControl(routingControl);
         }
 
-        // Format points into Leaflet LatLng objects array format
         const waypoints = routeCoordinatesGeoRegistry.map(checkpoint => L.latLng(checkpoint.lat, checkpoint.lng));
 
         if (waypoints.length >= 2) {
             routingControl = L.Routing.control({
                 waypoints: waypoints,
                 router: L.Routing.osrmv1({
-                    serviceUrl: 'https://router.project-osrm.org/route/v1' // Free public road networks routing database API
+                    serviceUrl: 'https://router.project-osrm.org/route/v1' 
                 }),
                 lineOptions: {
-                    // Stacking multiple styles natively to make the glowing road highlighted corridor track
                     styles: [
-                        { color: '#22c55e', opacity: 0.45, weight: 14 }, // Layer 1: Base corridor highlight neon glow
-                        { color: '#15803d', opacity: 1.0, weight: 4 }    // Layer 2: Core inner directional street center line
+                        { color: '#22c55e', opacity: 0.45, weight: 14 }, 
+                        { color: '#15803d', opacity: 1.0, weight: 4 }    
                     ]
                 },
-                createMarker: function() { return null; }, // Block auto-generation of generic system markers since you manage your own icons
+                createMarker: function() { return null; }, 
                 addWaypoints: false, 
                 draggableWaypoints: false,
                 fitSelectedRoutes: false 
@@ -234,8 +241,11 @@
         const sourceName = document.getElementById('sourceName').value.trim() || "Source";
         const destName = document.getElementById('destinationName').value.trim() || "Destination";
         
+        const customPlaces = routeCoordinatesGeoRegistry.filter(p => p.isCustom);
+        
         routeCoordinatesGeoRegistry = [
             { name: sourceName, lat: sourceLat, lng: sourceLng },
+            ...customPlaces,
             { name: destName, lat: destLat, lng: destLng }
         ];
         drawRouteLine();
@@ -314,6 +324,73 @@
         );
     });
 
+    /* ==========================================
+       ADD NEW PLACE BASED ON DEVICE GPS LOCATION
+       ========================================== */
+    document.getElementById('btnAddNewPlace').addEventListener('click', function() {
+        const btn = this;
+        if (!navigator.geolocation) {
+            alert("Geolocation engine is unavailable on this device layout.");
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Fetching GPS...`;
+
+        navigator.geolocation.getCurrentPosition(
+            async function(position) {
+                const currentLat = position.coords.latitude;
+                const currentLng = position.coords.longitude;
+                
+                let defaultSuggestion = `${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`;
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentLat}&lon=${currentLng}&zoom=16`);
+                    const data = await response.json();
+                    defaultSuggestion = data.address.road || data.address.suburb || data.address.amenity || defaultSuggestion;
+                } catch(e) { console.log("Reverse lookup fallback activated."); }
+
+                btn.disabled = false;
+                btn.innerHTML = `<i class="bi bi-plus-circle-fill me-2"></i> Mark & Name Current Location`;
+
+                const placeNameInput = prompt("Enter a label/name for your current device location:", defaultSuggestion);
+                
+                if (placeNameInput !== null && placeNameInput.trim() !== "") {
+                    const cleanPlaceName = placeNameInput.trim();
+                    
+                    const newCustomPlace = { 
+                        name: cleanPlaceName, 
+                        lat: currentLat, 
+                        lng: currentLng,
+                        isCustom: true 
+                    };
+
+                    const midStopsInput = document.getElementById('midRouteStops');
+                    if (midStopsInput.value.trim() === "") {
+                        midStopsInput.value = cleanPlaceName;
+                    } else {
+                        midStopsInput.value += `, ${cleanPlaceName}`;
+                    }
+
+                    L.marker([currentLat, currentLng], { icon: customPlaceIcon })
+                     .addTo(customPlacesLayerGroup)
+                     .bindPopup(`<b>Custom Anchor Point:</b><br>${cleanPlaceName}`)
+                     .openPopup();
+
+                    routeCoordinatesGeoRegistry.splice(routeCoordinatesGeoRegistry.length - 1, 0, newCustomPlace);
+                    
+                    drawRouteLine();
+                    updateMapBounds();
+                }
+            },
+            function(err) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="bi bi-plus-circle-fill me-2"></i> Mark & Name Current Location`;
+                alert("Unable to acquire high accuracy hardware coordinate positioning lock.");
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
+    });
+
     document.getElementById('sourceName').addEventListener('blur', function() { lookupLocation(this.value, true); });
     document.getElementById('destinationName').addEventListener('blur', function() { lookupLocation(this.value, false); });
 
@@ -384,6 +461,7 @@
     }
 
     async function preCompileTimelineGeocodeFootprints(source, viaStopsString, destination) {
+        const customPlaces = routeCoordinatesGeoRegistry.filter(p => p.isCustom);
         routeCoordinatesGeoRegistry = [];
         routeCoordinatesGeoRegistry.push({ name: source, lat: sourceLat, lng: sourceLng });
 
@@ -392,6 +470,12 @@
             for (let rawStop of individualStops) {
                 const cleanStop = rawStop.trim();
                 if (cleanStop.length > 0) {
+                    const isAlreadyCustom = customPlaces.find(p => p.name.toLowerCase() === cleanStop.toLowerCase());
+                    if (isAlreadyCustom) {
+                        routeCoordinatesGeoRegistry.push(isAlreadyCustom);
+                        continue;
+                    }
+
                     try {
                         const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cleanStop)}&limit=1`);
                         const parsedData = await res.json();
