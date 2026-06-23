@@ -1,37 +1,53 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Login - NewProject</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Smart Bus Tracker</title>
     <link rel="icon" type="image/png" href="/icons/icon-192.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#22c55e">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <style>
         :root {
-            --primary-color: #4a90e2;
-            --success-color: #2ecc71;
-            --error-color: #e74c3c;
-            --bg-color: #f4f7f6;
-            --text-color: #333;
+            --primary: #22c55e;
+            --secondary: #16a34a;
+            --dark: #0f172a;
+            --card: rgba(255, 255, 255, .05);
+            --text: #f8fafc;
+            --muted: #94a3b8;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
+            background: radial-gradient(circle at top right, #1e293b, var(--dark));
+            color: var(--text);
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
-            color: var(--text-color);
+            min-height: 100vh;
+            padding: 20px;
         }
 
         .form-card {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+            background: var(--card);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, .08);
+            padding: 2.5rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
             width: 100%;
-            max-width: 350px;
+            max-width: 380px;
             text-align: center;
             transition: transform 0.3s ease;
         }
@@ -40,28 +56,19 @@
             transform: translateY(-4px);
         }
 
-        h2 {
-            margin-top: 0;
+        .brand-header {
+            color: var(--text);
+            font-size: 1.8rem;
+            font-weight: 700;
             margin-bottom: 1.5rem;
-            color: #222;
-            font-size: 1.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
 
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: 2px solid #eee;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 1rem;
-            transition: all 0.2s ease;
-            outline: none;
-        }
-
-        input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        .brand-header i {
+            color: var(--primary);
         }
 
         label {
@@ -69,43 +76,65 @@
             text-align: left;
             font-size: 0.85rem;
             font-weight: 600;
-            margin-top: 10px;
-            color: #555;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        /* Spinner Styling */
-        .loader-spinner {
-            width: 60px;
-            height: 60px;
-            border: 6px solid rgba(255, 255, 255, 0.2);
-            border-top: 6px solid #4a90e2;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
+        .input-group-custom {
+            display: flex;
+            align-items: center;
+            background: #1f2937;
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 10px;
+            padding-left: 12px;
+            transition: all 0.2s ease;
         }
 
-        @keyframes spin {
-            100% {
-                transform: rotate(360deg);
-            }
+        .input-group-custom:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+        }
+
+        .input-group-custom i {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #ffffff !important;
+            padding: 12px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        input::placeholder {
+            color: #94a3b8 !important;
+            opacity: 0.6;
         }
 
         button {
             width: 100%;
-            background-color: var(--primary-color);
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             color: white;
             padding: 12px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             font-size: 1rem;
             font-weight: bold;
-            margin-top: 20px;
+            margin-top: 25px;
+            box-shadow: 0 5px 15px rgba(34, 197, 94, 0.2);
             transition: filter 0.2s, transform 0.1s;
         }
 
         button:hover {
-            filter: brightness(1.05);
+            filter: brightness(1.1);
         }
 
         button:active {
@@ -113,62 +142,106 @@
         }
 
         .alert {
-            padding: 10px;
-            border-radius: 6px;
+            padding: 12px;
+            border-radius: 10px;
             font-size: 0.85rem;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            text-align: left;
         }
 
-        .alert-error { background-color: #ffebee; color: var(--error-color); border: 1px solid #ffcdd2; }
-        .alert-success { background-color: #e8f5e9; color: var(--success-color); border: 1px solid #c8e6c9; }
+        .alert-error { 
+            background-color: rgba(239, 68, 68, 0.15); 
+            color: #fca5a5; 
+            border-color: rgba(239, 68, 68, 0.25); 
+        }
+        
+        .alert-success { 
+            background-color: rgba(34, 197, 94, 0.15); 
+            color: #86efac; 
+            border-color: rgba(34, 197, 94, 0.25); 
+        }
 
         hr {
             border: 0;
-            border-top: 1px solid #eee;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             margin: 25px 0;
         }
 
-        a {
-            color: var(--primary-color);
-            text-decoration: none;
+        .footer-links {
             font-size: 0.9rem;
+            color: var(--muted);
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
             font-weight: 600;
+            transition: color 0.2s;
         }
 
         a:hover {
+            color: #4ade80;
             text-decoration: underline;
         }
 
         .forgot-password {
-            margin-top: 10px;
+            margin-top: 12px;
+        }
+
+        /* Spinner & Loader Overhaul */
+        .loader-spinner {
+            width: 55px;
+            height: 55px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        #threeBus canvas {
+            max-width: 100%;
+            height: auto !important;
         }
     </style>
 </head>
 <body>
 
     <div class="form-card">
-        <h2>Login</h2>
+        <h2 class="brand-header">
+            <i class="bi bi-bus-front-fill"></i> Sign In
+        </h2>
 
         <div th:if="${param.error}" class="alert alert-error">
-            Invalid username or password.
+            <i class="bi bi-exclamation-circle-fill me-2"></i> Invalid username or password.
         </div>
         <div th:if="${param.logout}" class="alert alert-success">
-            Logged out successfully.
+            <i class="bi bi-check-circle-fill me-2"></i> Logged out successfully.
         </div>
 
         <form id="loginForm" th:action="@{/login}" method="post">
             <label for="username">Username</label>
-            <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus/>
+            <div class="input-group-custom">
+                <i class="bi bi-person-fill"></i>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required autofocus/>
+            </div>
             
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="Enter your password" required/>
+            <div class="input-group-custom">
+                <i class="bi bi-lock-fill"></i>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required/>
+            </div>
             
             <button type="submit">Sign In</button>
         </form>
 
         <hr>
         
-        <p style="font-size: 0.9rem; color: #666;">
+        <p class="footer-links">
             New here? <a th:href="@{/signup}">Create an Account</a>
         </p>
         <div class="forgot-password">
@@ -180,15 +253,16 @@
         display: none;
         position: fixed;
         inset: 0;
-        background: rgba(0,0,0,0.85);
+        background: rgba(15, 23, 42, 0.95);
         z-index: 9999;
         justify-content: center;
         align-items: center;
         flex-direction: column;
+        padding: 20px;
     ">
         <div class="loader-spinner"></div>
         <div id="threeBus"></div>
-        <h3 style="color:white; font-family: sans-serif; margin-top: 10px;">Starting Bus Tracker...</h3>
+        <h4 style="color: white; font-family: sans-serif; margin-top: 15px; font-weight: 600; letter-spacing: 0.5px;">Starting Bus Tracker...</h4>
     </div>
 
     <script type="module">
@@ -199,7 +273,7 @@
         const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
 
-        renderer.setSize(200, 200); // Scaled down to fit elegantly next to the spinner
+        renderer.setSize(180, 180);
         document.getElementById("threeBus").appendChild(renderer.domElement);
 
         scene.add(new THREE.AmbientLight(0xffffff, 3));
@@ -234,7 +308,6 @@
         }
         animate();
 
-        // Helper function to show loader overlay
         window.showLoader = function() {
             document.getElementById("loader").style.display = "flex";
         }
@@ -243,7 +316,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Trigger loader when form is submitted
         document.getElementById("loginForm").addEventListener("submit", function() {
             if (typeof window.showLoader === "function") {
                 window.showLoader();
@@ -252,7 +324,6 @@
             }
         });
 
-        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
