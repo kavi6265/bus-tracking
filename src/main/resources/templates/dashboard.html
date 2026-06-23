@@ -218,13 +218,21 @@
             font-size: 15px;
         }
 
-        /* Bus Result Layout Components */
+        /* Fully Exploded Details Layout Card Components */
         .bus-result-card {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 14px;
-            padding: 14px;
-            margin-bottom: 12px;
+            padding: 16px;
+            margin-bottom: 15px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 13px;
         }
 
         .bottom-nav {
@@ -403,38 +411,60 @@
     </div>
 
     <div th:if="${param.source != null and param.destination != null}" class="glass-card">
-        <h5 class="mb-3 text-success fw-bold"><i class="bi bi-bus-front-fill me-1"></i> Route Results</h5>
+        <h5 class="mb-3 text-success fw-bold">
+            <i class="bi bi-bus-front-fill me-1"></i> Available Buses Found
+        </h5>
         
-        <div th:if="${#lists.isEmpty(buses)}" class="alert alert-warning border-0 bg-dark text-warning rounded-3 small mb-0">
-            <i class="bi bi-exclamation-triangle-fill me-1"></i> No matching active buses found for this corridor layout right now.
+        <div th:if="${#lists.isEmpty(buses)}" class="alert alert-warning border-0 bg-dark text-warning rounded-3 small m-0">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i> No matching buses available for this route corridor at the moment.
         </div>
 
         <div th:unless="${#lists.isEmpty(buses)}">
             <div th:each="bus : ${buses}" class="bus-result-card">
-                <div class="d-flex justify-content-between align-items-start">
+                
+                <div class="d-flex justify-content-between align-items-start mb-2">
                     <div>
-                        <span class="badge bg-secondary mb-2" th:text="${bus.busType}">ORDINARY</span>
-                        <h6 class="text-white fw-bold m-0">
-                            <span th:text="${bus.busNumber}">TN-33</span> : <span th:text="${bus.busName}">City Route Bus</span>
-                        </h6>
-                        <small class="text-muted d-block mt-1">
-                            <i class="bi bi-geo-alt text-success"></i> Current Node: <span class="text-warning fw-semibold" th:text="${bus.currentStop}">Station</span>
-                        </small>
+                        <span class="badge bg-success mb-1" th:text="${bus.busType}">ORDINARY</span>
+                        <h5 class="text-white fw-bold m-0">
+                            <span th:text="${bus.busNumber}">TN-33</span> : <span th:text="${bus.busName}">Route Hub Fleet</span>
+                        </h5>
                     </div>
                     <div class="text-end">
-                        <span class="text-success fw-bold d-block" th:text="${bus.speed + ' km/h'}">0 km/h</span>
-                        <small class="text-muted" style="font-size: 11px;">Speed</small>
+                        <span class="text-success fw-bold fs-5 d-block" th:text="${bus.speed + ' km/h'}">0 km/h</span>
+                        <small class="text-muted" style="font-size: 11px;">Telemetry Speed</small>
                     </div>
                 </div>
-                
-                <div class="mt-3 pt-2 border-top border-secondary d-flex justify-content-between align-items-center">
-                    <small class="text-muted text-truncate me-2" style="max-width: 60%;">
-                        Stops: <span th:text="${bus.stops}">Route Points</span>
-                    </small>
-                    <a th:href="@{/track-bus(busNumber=${bus.busNumber},busName=${bus.busName})}" class="btn btn-success btn-sm px-3 rounded-pill fw-semibold">
-                        <i class="bi bi-radar me-1"></i> Track Live
+
+                <hr class="my-2" style="border-color: rgba(255,255,255,0.1);">
+
+                <div class="detail-row">
+                    <span class="text-muted"><i class="bi bi-signpost-split me-1 text-info"></i> Base Hub Route:</span>
+                    <span class="text-white fw-semibold">
+                        <span th:text="${bus.source}">Source</span> ➔ <span th:text="${bus.destination}">Destination</span>
+                    </span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="text-muted"><i class="bi bi-geo-alt-fill me-1 text-warning"></i> Current Position:</span>
+                    <span class="text-warning fw-boldth" th:text="${bus.currentStop}">At Station Terminal</span>
+                </div>
+
+                <div class="detail-row" th:if="${bus.distanceRemaining != null}">
+                    <span class="text-muted"><i class="bi bi-hourglass-split me-1 text-danger"></i> Distance Remaining:</span>
+                    <span class="text-white" th:text="${bus.distanceRemaining + ' km'}">0.0 km</span>
+                </div>
+
+                <div class="mt-2 small bg-dark p-2 rounded border border-secondary">
+                    <div class="text-muted mb-1" style="font-size: 11px; font-weight: 600; text-transform: uppercase;">Corridor Intermediate Stops Sequence:</div>
+                    <div class="text-white-50 text-truncate" th:text="${bus.stops}">Stop1, Stop2, Stop3</div>
+                </div>
+
+                <div class="mt-3 text-end">
+                    <a th:href="@{/track-bus(busNumber=${bus.busNumber},busName=${bus.busName})}" class="btn btn-success btn-sm w-100 rounded-3 fw-bold py-2">
+                        <i class="bi bi-radar me-1"></i> Track Live Coordinates
                     </a>
                 </div>
+
             </div>
         </div>
     </div>
@@ -464,13 +494,9 @@ function getUserLocation() {
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=14`);
             const data = await res.json();
-            
-            // Extracts pure string town/city metrics instead of country suffix layout nodes
             const placeName = data.address.city || data.address.town || data.address.village || "Erode";
             
             locText.innerText = data.display_name.split(',').slice(0, 3).join(',');
-            
-            // Populates clean token target values for input fields so query matching doesn't break
             document.getElementById("source-input").value = placeName;
         } catch(e) { 
             locText.innerText = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
