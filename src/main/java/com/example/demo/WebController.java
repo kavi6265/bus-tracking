@@ -285,7 +285,7 @@ public class WebController {
         userRepository.save(user);
 
         try {
-            String resetLink = "http://localhost:5096/reset-password?token=" + token;
+            String resetLink = "https://bus-tracking-3-0idg.onrender.com/reset-password?token=" + token;
             System.out.println("Reset Link: " + resetLink);
 
             SimpleMailMessage message = new SimpleMailMessage();
