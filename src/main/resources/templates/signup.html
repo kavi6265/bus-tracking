@@ -1,127 +1,265 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bus Tracking – Signup</title>
     <link rel="icon" type="image/png" href="/icons/icon-192.png">
     <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#22c55e">
+    <meta name="theme-color" content="#22c55e">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
     <style>
+        :root {
+            --primary: #22c55e;
+            --secondary: #16a34a;
+            --dark: #0f172a;
+            --card: rgba(255, 255, 255, .05);
+            --text: #f8fafc;
+            --muted: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
+            background: radial-gradient(circle at top right, #1e293b, var(--dark));
+            color: var(--text);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
+            padding: 20px;
         }
 
-        h2 {
-            color: #333;
-            margin-bottom: 1.5rem;
-        }
-
-        form {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            width: 340px;
-        }
-
-        input,
-        select {
+        .form-card {
+            background: var(--card);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, .08);
+            padding: 2.5rem 2rem;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
             width: 100%;
+            max-width: 380px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .form-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .brand-header {
+            color: var(--text);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .brand-header i {
+            color: var(--primary);
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-group-custom {
+            display: flex;
+            align-items: center;
+            background: #1f2937;
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 10px;
+            padding-left: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .input-group-custom:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+        }
+
+        .input-group-custom i {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        input, select {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: #ffffff !important;
             padding: 12px;
-            margin: 10px 0;
-            border: 2px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            font-size: 14px;
+            outline: none;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 14px;
+            padding-right: 35px;
+        }
+
+        select option {
+            background-color: #1f2937;
+            color: #ffffff;
+        }
+
+        input::placeholder {
+            color: #94a3b8 !important;
+            opacity: 0.6;
         }
 
         button {
             width: 100%;
-            background-color: #4CAF50;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
             color: white;
             padding: 12px;
             border: none;
-            border-radius: 4px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 1rem;
             font-weight: bold;
-            margin-top: 15px;
+            margin-top: 25px;
+            box-shadow: 0 5px 15px rgba(34, 197, 94, 0.2);
+            transition: filter 0.2s, transform 0.1s;
         }
 
         button:hover {
-            background-color: #45a049;
+            filter: brightness(1.1);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            text-align: left;
+        }
+
+        .alert-error { 
+            background-color: rgba(239, 68, 68, 0.15); 
+            color: #fca5a5; 
+            border-color: rgba(239, 68, 68, 0.25); 
+        }
+        
+        .alert-success { 
+            background-color: rgba(34, 197, 94, 0.15); 
+            color: #86efac; 
+            border-color: rgba(34, 197, 94, 0.25); 
+        }
+
+        hr {
+            border: 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin: 25px 0;
+        }
+
+        .footer-links {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: var(--muted);
         }
 
         a {
-            margin-top: 15px;
-            color: #666;
+            color: var(--primary);
             text-decoration: none;
-            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
         }
 
-        .message {
-            color: green;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-
-        .error {
-            color: red;
-            margin-bottom: 10px;
-            text-align: center;
+        a:hover {
+            color: #4ade80;
+            text-decoration: underline;
         }
     </style>
 </head>
 
 <body>
 
-<h2>Bus Tracking – Register</h2>
+    <div class="form-card">
+        <h2 class="brand-header">
+            <i class="bi bi-bus-front-fill"></i> Register
+        </h2>
 
-<form th:action="@{/signup}" method="post">
+        <div th:if="${message}" class="alert alert-success">
+            <i class="bi bi-check-circle-fill me-2"></i> <span th:text="${message}"></span>
+        </div>
 
-    <!-- Success Message -->
-    <div th:if="${message}" class="message">
-        <span th:text="${message}"></span>
+        <div th:if="${error}" class="alert alert-error">
+            <i class="bi bi-exclamation-circle-fill me-2"></i> <span th:text="${error}"></span>
+        </div>
+
+        <form th:action="@{/signup}" method="post">
+
+            <label for="username">Username</label>
+            <div class="input-group-custom">
+                <i class="bi bi-person-fill"></i>
+                <input type="text" id="username" name="username" placeholder="Username" required autofocus />
+            </div>
+
+            <label for="email">Email</label>
+            <div class="input-group-custom">
+                <i class="bi bi-envelope-fill"></i>
+                <input type="email" id="email" name="email" placeholder="Enter your Email" required />
+            </div>
+
+            <label for="password">Password</label>
+            <div class="input-group-custom">
+                <i class="bi bi-lock-fill"></i>
+                <input type="password" id="password" name="password" placeholder="Password" required />
+            </div>
+
+            <label for="role">Account Type</label>
+            <div class="input-group-custom">
+                <i class="bi bi-shield-lock-fill"></i>
+                <select id="role" name="role">
+                    <option value="DRIVER">Driver</option>
+                    <option value="PASSENGER">Passenger</option>
+                </select>
+            </div>
+
+            <button type="submit">Register</button>
+
+        </form>
+
+        <hr>
+
+        <div class="footer-links">
+            <a th:href="@{/login}">Already have an account? Login</a>
+        </div>
     </div>
 
-    <!-- Error Message -->
-    <div th:if="${error}" class="error">
-        <span th:text="${error}"></span>
-    </div>
-
-    <input type="text"
-           name="username"
-           placeholder="Username"
-           required />
-
-    <input type="email"
-           name="email"
-           placeholder="Enter your Email"
-           required />
-
-    <input type="password"
-           name="password"
-           placeholder="Password"
-           required />
-
-    <select name="role">
-        <option value="DRIVER">Driver</option>
-        <option value="PASSENGER">Passenger</option>
-    </select>
-
-    <button type="submit">Register</button>
-
-</form>
-
-<a th:href="@{/login}">
-    Already have an account? Login
-</a>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
     if ('serviceWorker' in navigator) {
