@@ -1,171 +1,123 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Driver Console - District-Aware Routing Deployment</title>
-    <link rel="icon" type="image/png" href="/icons/icon-192.png">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-	<head>
-	    
-	</head>
+    <title>Live Transit Route Control Engine (Free Offline Edition)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
     <style>
-        :root {
-            --primary: #22c55e;
-            --dark: #0f172a;
-            --card: #1e293b;
-            --text: #f8fafc;
-            --muted: #94a3b8;
-        }
         body {
-            background: var(--dark);
-            color: var(--text);
-            font-family: 'Segoe UI', sans-serif;
-            padding: 20px 0;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
         }
-        .driver-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        .control-panel {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-right: 1px solid #334155;
+            min-height: 100vh;
         }
-        
         #map {
             width: 100%;
-            height: 450px;
-            min-height: 400px;
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            margin-top: 10px;
-            position: relative;
-            z-index: 1;
+            height: 100vh;
+            background-color: #020617;
         }
-        
-        .coordinate-badge {
-            font-size: 11px;
-            color: var(--muted);
+        .form-control, .form-control:focus {
+            background-color: #1e293b;
+            border-color: #475569;
+            color: #f8fafc;
+        }
+        .form-control:focus {
+            box-shadow: 0 0 0 0.25rem rgba(34, 197, 94, 0.25);
+            border-color: #22c55e;
         }
         .tracking-active {
-            animation: pulse-green 2s infinite;
+            border-left: 4px solid #22c55e;
         }
-        @keyframes pulse-green {
-            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-        }
-        .gm-style-iw {
-            color: #000 !important;
+        .coord-subtitle {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 2px;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-10 col-12">
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        <div class="col-md-4 p-4 control-panel overflow-y-auto" id="consoleCard">
+            <h4 class="mb-4 text-success"><i class="bi bi-radar me-2"></i>Route Dispatcher</h4>
             
-            <div class="driver-card" id="consoleCard">
-                <h3 class="mb-4 text-center">
-                    <i class="bi bi-map-fill text-success me-2"></i> Route Deployment Console
-                </h3>
-                
-                <div class="row g-4">
-                    <div class="col-md-5 col-12">
-                        <form id="routeForm">
-                            <div class="mb-3">
-                                <label for="busNumber" class="form-label fw-semibold">Bus Number</label>
-                                <input type="text" id="busNumber" class="form-control bg-dark text-white border-secondary" placeholder="e.g., 26" required>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="busName" class="form-label fw-semibold">Bus Name / Label</label>
-                                <input type="text" id="busName" class="form-control bg-dark text-white border-secondary" placeholder="e.g., 26G" required>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <label for="sourceName" class="form-label fw-semibold text-success mb-0">Source Station</label>
-                                    <button type="button" id="btnGetGPS" class="btn btn-outline-success btn-sm py-0 px-2" style="font-size: 0.8rem;">
-                                        <i class="bi bi-geo-alt-fill"></i> Use GPS
-                                    </button>
-                                </div>
-                                <input
-                                type="text"
-                                id="sourceName"
-                                class="form-control bg-dark text-white border-secondary"
-                                placeholder="Panamaruthapatti|Salem"
-                                required>
-                                <div class="coordinate-badge mt-1" id="lblSourceCoords">Coords: Not Loaded</div>
-                            </div>
-                            
-                            <div class="mb-3">
-                                <label for="midRouteStops" class="form-label fw-semibold text-warning">Via Pass-Through Stations (Comma Separated)</label>
-                                <input
-                                type="text"
-                                id="midRouteStops"
-                                class="form-control bg-dark text-white border-secondary"
-                                placeholder="Odasalpatti|Dharmapuri, Harur|Dharmapuri">
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="destinationName" class="form-label fw-semibold text-info">Destination Station</label>
-                                <input
-                                type="text"
-                                id="destinationName"
-                                class="form-control bg-dark text-white border-secondary"
-                                placeholder="Morappur|Dharmapuri"
-                                required>
-                                <div class="coordinate-badge mt-1" id="lblDestCoords">Coords: Not Loaded</div>
-                            </div>
-
-                            <div class="d-flex flex-column gap-2">
-                                <button type="submit" id="btnSubmit" class="btn btn-success w-100 py-2 fw-bold">
-                                    <i class="bi bi-cloud-arrow-up-fill me-2"></i> Deploy & Start Tracking
-                                </button>
-                                
-                                <button type="button" id="btnAddNewPlace" class="btn btn-outline-warning w-100 py-2 fw-semibold">
-                                    <i class="bi bi-plus-circle-fill me-2"></i> Mark & Name Current Location
-                                </button>
-                            </div>
-                        </form>
-                        
-                        <div id="trackingStatusCard" class="mt-4 p-3 bg-dark border border-success rounded-3 d-none">
-                            <div class="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <div class="text-success fw-bold"><i class="bi bi-broadcast text-danger"></i> Live Transmission Active</div>
-                                    <div class="text-warning small mt-1" id="radarCurrentStop">Current: Calculating...</div>
-                                    <small class="text-muted" id="lastTxTime">Waiting for first sync...</small>
-                                </div>
-                                <span class="badge bg-success" id="txCounter">0 Tx</span>
-                            </div>
-                        </div>
+            <form id="routeForm" novalidate>
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label for="busNumber" class="form-label text-light small fw-bold">Bus Number</label>
+                        <input type="text" id="busNumber" class="form-control" placeholder="e.g. TN-28-391" required>
                     </div>
+                    <div class="col-6">
+                        <label for="busName" class="form-label text-light small fw-bold">Route Title/Name</label>
+                        <input type="text" id="busName" class="form-control" placeholder="e.g. TNC" required>
+                    </div>
+                </div>
 
-                    <div class="col-md-7 col-12">
-                        <label class="form-label fw-semibold text-secondary">Live Route Preview Anchors</label>
-                        <div id="map"></div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <label for="sourceName" class="form-label text-success fw-bold m-0">Source Station</label>
+                        <button type="button" class="btn btn-sm btn-outline-success py-0 px-2" id="btnGetGPS">
+                            <i class="bi bi-geo-alt-fill"></i> Use GPS
+                        </button>
+                    </div>
+                    <input type="text" id="sourceName" class="form-control mt-1" placeholder="e.g. Salem" required>
+                    <div id="lblSourceCoords" class="coord-subtitle">Coords: Not Loaded</div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="midRouteStops" class="form-label text-warning fw-bold">Via Pass-Through Stations (Comma Separated)</label>
+                    <input type="text" id="midRouteStops" class="form-control" placeholder="e.g. Harur">
+                </div>
+
+                <div class="mb-4">
+                    <label for="destinationName" class="form-label text-info fw-bold">Destination Station</label>
+                    <input type="text" id="destinationName" class="form-control" placeholder="e.g. Dharmapuri" required>
+                    <div id="lblDestCoords" class="coord-subtitle">Coords: Not Loaded</div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success fw-bold py-2.5" id="btnSubmit">
+                        <i class="bi bi-cloud-arrow-up-fill me-2"></i> Deploy & Start Tracking
+                    </button>
+                    <button type="button" class="btn btn-outline-warning btn-sm" id="btnAddNewPlace">
+                        <i class="bi bi-plus-circle-fill me-1"></i> Mark & Name Current Location
+                    </button>
+                </div>
+            </form>
+
+            <div id="trackingStatusCard" class="card bg-dark border-secondary mt-4 d-none">
+                <div class="card-body p-3">
+                    <h6 class="text-success border-bottom border-secondary pb-2 mb-2">
+                        <i class="bi bi-broadcast spinning me-2"></i>Telemetry Uplink Active
+                    </h6>
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span id="radarCurrentStop" class="text-white-50">Nearest Stop: Calculating...</span>
+                        <span id="txCounter" class="badge bg-success">0 Tx</span>
+                    </div>
+                    <div class="text-end text-muted" style="font-size: 0.75rem;" id="lastTxTime">
+                        Awaiting link establishment...
                     </div>
                 </div>
             </div>
-            
+        </div>
+
+        <div class="col-md-8">
+            <div id="map"></div>
         </div>
     </div>
 </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCF9GcWnQz-IeVXBfzbpVWntKppkLm1YpA&callback=initMap" async defer></script>
-
 <script>
-    // System Keys Registry Segment
-    const KEY_GEOCODING = "AIzaSyB2zmZQ8o8A1sn6LzizO6mALMRZRUMqvDA";
-    const KEY_DIRECTIONS = "AIzaSyB7qdQdz4mHeEnRKrTZVDqe-toBw0AC8VI";
-
     let map;
     let fallbackPolyline = null;
-    let currentRenderedRouteLine = null; // Replaces directionsRenderer to bypass shared key constraints
     
     let sourceLat = null, sourceLng = null; 
     let destLat = null, destLng = null;     
@@ -193,7 +145,7 @@
 
     function initMap() {
         map = new google.maps.Map(document.getElementById('map'), {
-            center: { lat: 11.9000, lng: 78.3500 },
+            center: { lat: 11.9000, lng: 78.3500 }, 
             zoom: 9,
             styles: darkMapStyle,
             disableDefaultUI: false
@@ -202,11 +154,15 @@
 
     function clearPreviousRoute() {
         if (fallbackPolyline) fallbackPolyline.setMap(null);
-        if (currentRenderedRouteLine) currentRenderedRouteLine.setMap(null);
         if (sourceMarker) sourceMarker.setMap(null);
         if (destMarker) destMarker.setMap(null);
         customMarkersArray.forEach(m => m.setMap(null));
         customMarkersArray = [];
+    }
+
+    function resetSubmitButton() {
+        document.getElementById('btnSubmit').disabled = false;
+        document.getElementById('btnSubmit').innerHTML = `<i class="bi bi-cloud-arrow-up-fill me-2"></i> Deploy & Start Tracking`;
     }
 
     function updateMapBounds() {
@@ -226,72 +182,61 @@
         }
     }
 
-    // Requests Direction data directly using the standalone Directions Key Token
-    async function drawRouteLine() {
+    // NEW: Open Source Routing Machine Engine (No API key needed)
+    function drawRouteLine() {
         if (routeCoordinatesGeoRegistry.length < 2) return;
-
         if (fallbackPolyline) fallbackPolyline.setMap(null);
-        if (currentRenderedRouteLine) currentRenderedRouteLine.setMap(null);
 
         let routeLineColor = '#22c55e'; 
-        let routeWeight = 6;
+        let routeWeight = 5;
         
         if (routeCoordinatesGeoRegistry.length > 2) {
             routeLineColor = '#ec4899'; 
-            routeWeight = 8;            
+            routeWeight = 6;            
         }
 
-        const originPoint = routeCoordinatesGeoRegistry[0];
-        const destinationPoint = routeCoordinatesGeoRegistry[routeCoordinatesGeoRegistry.length - 1];
-        
-        const originStr = `${originPoint.lat},${originPoint.lng}`;
-        const destStr = `${destinationPoint.lat},${destinationPoint.lng}`;
-        
-        let waypointsStr = "";
-        if (routeCoordinatesGeoRegistry.length > 2) {
-            const waypointsArr = [];
-            for (let i = 1; i < routeCoordinatesGeoRegistry.length - 1; i++) {
-                waypointsArr.push(`${routeCoordinatesGeoRegistry[i].lat},${routeCoordinatesGeoRegistry[i].lng}`);
-            }
-            waypointsStr = `&waypoints=${waypointsArr.join('|')}`;
-        }
+        // Format coordinates as lng,lat separated by semicolons for OSRM API
+        const coordString = routeCoordinatesGeoRegistry.map(pt => `${pt.lng},${pt.lat}`).join(';');
+        const url = `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`;
 
-        // Programmatic fallback route calculation array
-        const straightLinePathCoords = routeCoordinatesGeoRegistry.map(pt => ({ lat: pt.lat, lng: pt.lng }));
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                if (data.code === "Ok" && data.routes.length > 0) {
+                    // Map OSRM GeoJSON geometry track array directly to Google Map coordinate paths
+                    const googlePathCoords = data.routes[0].geometry.coordinates.map(coord => ({
+                        lat: coord[1],
+                        lng: coord[0]
+                    }));
 
-        try {
-            const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(originStr)}&destination=${encodeURIComponent(destStr)}${waypointsStr}&mode=driving&key=${KEY_DIRECTIONS}`;
-            
-            const response = await fetch(directionsUrl);
-            const data = await response.json();
-
-            if (data.status === "OK" && data.routes.length > 0) {
-                // Decodes the compressed geometric path polyline returned by the API
-                const points = google.maps.geometry.encoding.decodePath(data.routes[0].overview_polyline.points);
-                
-                currentRenderedRouteLine = new google.maps.Polyline({
-                    path: points,
-                    geodesic: true,
-                    strokeColor: routeLineColor,
-                    strokeOpacity: 0.95,
-                    strokeWeight: routeWeight
-                });
-                currentRenderedRouteLine.setMap(map);
-            } else {
-                throw new Error(`Directions REST service returned status: ${data.status}`);
-            }
-        } catch (error) {
-            console.warn("Direct route mapping pipeline error, triggering layout backup matrix:", error);
-            
-            fallbackPolyline = new google.maps.Polyline({
-                path: straightLinePathCoords,
-                geodesic: true,
-                strokeColor: routeLineColor === '#22c55e' ? '#eab308' : routeLineColor,
-                strokeOpacity: 0.8,
-                strokeWeight: routeWeight - 1
+                    fallbackPolyline = new google.maps.Polyline({
+                        path: googlePathCoords,
+                        geodesic: true,
+                        strokeColor: routeLineColor,
+                        strokeOpacity: 0.85,
+                        strokeWeight: routeWeight
+                    });
+                    fallbackPolyline.setMap(map);
+                } else {
+                    drawFallbackStraightLine(routeLineColor, routeWeight);
+                }
+            })
+            .catch(err => {
+                console.warn("OSRM Routing failed, drawing straight fallback track:", err);
+                drawFallbackStraightLine(routeLineColor, routeWeight);
             });
-            fallbackPolyline.setMap(map);
-        }
+    }
+
+    function drawFallbackStraightLine(color, weight) {
+        const straightLinePathCoords = routeCoordinatesGeoRegistry.map(pt => ({ lat: pt.lat, lng: pt.lng }));
+        fallbackPolyline = new google.maps.Polyline({
+            path: straightLinePathCoords,
+            geodesic: true,
+            strokeColor: color === '#22c55e' ? '#eab308' : color,
+            strokeOpacity: 0.8,
+            strokeWeight: weight
+        });
+        fallbackPolyline.setMap(map);
     }
 
     async function resolveLocationInput(inputText, defaultLabel) {
@@ -306,52 +251,53 @@
                 lng: parseFloat(match[2])
             };
         }
-        
         return await geocodePromise(cleanText);
     }
 
-    // Requests data directly from the Geocoding API using your dedicated Geocoding Key
+    // NEW: OpenStreetMap Nominatim Geocoding Engine (No billing/No API keys required)
 	function geocodePromise(addressText) {
 	    return new Promise((resolve) => {
-	        let queryWithRegion = addressText.trim();
-	        if (addressText.includes("|")) {
-	            const parts = addressText.split("|");
-	            queryWithRegion = `${parts[0].trim()}, ${parts[1].trim()}, Tamil Nadu, India`;
-	        } else {
-	            queryWithRegion = `${addressText.trim()}, Tamil Nadu, India`;
-	        }
-
-	        // Generate a unique fallback function name for JSONP
-	        const callbackName = 'custom_geocode_cb_' + Math.round(Math.random() * 1000000);
+	        let queryText = addressText.trim();
 	        
-	        // Define the global temporary fallback function
-	        window[callbackName] = function(data) {
-	            delete window[callbackName];
-	            document.body.removeChild(script);
-	            
-	            if (data.status === "OK" && data.results.length > 0) {
-	                const location = data.results[0].geometry.location;
-	                resolve({
-	                    name: addressText.trim(),
-	                    lat: location.lat,
-	                    lng: location.lng
-	                });
-	            } else {
-	                console.error(`Geocoding failed. Status: ${data.status}. Msg: ${data.error_message || 'None'}`);
-	                resolve(null);
-	            }
-	        };
+	        // If the user accidentally inputted a string containing a comma list, 
+	        // extract just the first element to prevent Nominatim from crashing
+	        if (queryText.includes(",")) {
+	            queryText = queryText.split(",")[0].trim();
+	        }
+	        if (queryText.includes("|")) {
+	            queryText = queryText.split("|")[0].trim();
+	        }
+	        
+	        const finalQuery = `${queryText}, Tamil Nadu, India`;
+	        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(finalQuery)}&format=json&limit=1`;
 
-	        // Append as a script tag to cleanly bypass CORS policies
-	        const script = document.createElement('script');
-	        script.src = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(queryWithRegion)}&callback=${callbackName}&key=${KEY_GEOCODING}`;
-	        document.body.appendChild(script);
+	        fetch(url, {
+	            headers: { 'User-Agent': 'LiveTransitTrackingEngineTestApp' }
+	        })
+	            .then(response => response.json())
+	            .then(data => {
+	                if (data && data.length > 0) {
+	                    resolve({
+	                        name: queryText,
+	                        lat: parseFloat(data[0].lat),
+	                        lng: parseFloat(data[0].lon)
+	                    });
+	                } else {
+	                    console.error(`Nominatim search found zero results for phrase: [${queryText}]`);
+	                    resolve(null);
+	                }
+	            })
+	            .catch(err => {
+	                console.error("Nominatim Network Lookup Exception:", err);
+	                resolve(null);
+	            });
 	    });
 	}
+
     document.getElementById('btnGetGPS').addEventListener('click', function() {
         const btn = this;
         if (!navigator.geolocation) {
-            alert("Geolocation is not supported by your browser.");
+            alert("Geolocation services unavailable inside this layout framework.");
             return;
         }
         btn.disabled = true;
@@ -369,7 +315,7 @@
             function() {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="bi bi-geo-alt-fill"></i> Use GPS`;
-                alert("Could not access GPS metrics safely.");
+                alert("Could not pull location tracking hardware parameters.");
             },
             { enableHighAccuracy: true, timeout: 10000 }
         );
@@ -380,7 +326,7 @@
         navigator.geolocation.getCurrentPosition(function(position) {
             const currentLat = position.coords.latitude;
             const currentLng = position.coords.longitude;
-            const label = prompt("Enter a label/name or confirm coords for position:", `${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`);
+            const label = prompt("Confirm location coordinates descriptor name:", `${currentLat.toFixed(4)}, ${currentLng.toFixed(4)}`);
             if (label) {
                 const midStopsInput = document.getElementById('midRouteStops');
                 midStopsInput.value = midStopsInput.value.trim() === "" ? label : `${midStopsInput.value}, ${label}`;
@@ -410,7 +356,7 @@
                     icon: { url: "https://cdn-icons-png.flaticon.com/512/3448/3448339.png", scaledSize: new google.maps.Size(38, 38) }
                 });
 
-                let matchedCurrentStop = routeCoordinatesGeoRegistry[0] ? routeCoordinatesGeoRegistry[0].name : "Route Transit";
+                let matchedCurrentStop = routeCoordinatesGeoRegistry[0] ? routeCoordinatesGeoRegistry[0].name : "In Transit";
                 let shortestDistanceCalculated = Infinity;
 
                 routeCoordinatesGeoRegistry.forEach(checkpoint => {
@@ -448,7 +394,7 @@
                     document.getElementById('txCounter').innerText = `${totalTransmissions} Tx`;
                     document.getElementById('lastTxTime').innerText = `Sent: ${new Date().toLocaleTimeString()}`;
                 })
-                .catch(err => console.error("Telemetry update failed:", err));
+                .catch(err => console.error("Telemetry link update failure:", err));
             },
             function(err) { console.error(err); },
             { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
@@ -465,17 +411,16 @@
         const destNameValue = document.getElementById('destinationName').value.trim();
 
         document.getElementById('btnSubmit').disabled = true;
-        document.getElementById('btnSubmit').innerHTML = `<span class="spinner-border spinner-border-sm"></span> Processing Locations...`;
+        document.getElementById('btnSubmit').innerHTML = `<span class="spinner-border spinner-border-sm"></span> Resolving Nodes Free Tier...`;
 
         clearPreviousRoute();
         routeCoordinatesGeoRegistry = [];
 
-        // 1. Resolve Source Location Context
+        // 1. Process Source Node Lookups via Nominatim
         const srcResult = await resolveLocationInput(sourceNameValue, "Source Station");
         if (!srcResult) {
-            alert(`Could not resolve location context for Source: "${sourceNameValue}"`);
-            document.getElementById('btnSubmit').disabled = false;
-            document.getElementById('btnSubmit').innerHTML = `<i class="bi bi-cloud-arrow-up-fill me-2"></i> Deploy & Start Tracking`;
+            alert(`Could not resolve location match for text: "${sourceNameValue}"`);
+            resetSubmitButton();
             return;
         }
         sourceLat = srcResult.lat;
@@ -489,7 +434,7 @@
             icon: { url: "https://cdn-icons-png.flaticon.com/512/11104/11104234.png", scaledSize: new google.maps.Size(32, 32) }
         });
 
-        // 2. Resolve Intermediate Route Anchors
+        // 2. Process Passing Stops Via Free Tier Loop
         if (midStopsValue.length > 0) {
             const individualStops = midStopsValue.split(',');
             for (let rawStop of individualStops) {
@@ -506,17 +451,22 @@
                             icon: { url: "https://cdn-icons-png.flaticon.com/512/2776/2776067.png", scaledSize: new google.maps.Size(28, 28) }
                         });
                         customMarkersArray.push(m);
+                    } else {
+                        alert(`Could not resolve midpoint marker: "${cleanStop}"`);
+                        resetSubmitButton();
+                        return;
                     }
+                    // Adding a tiny sleep interval delay ensures compliance with OpenStreetMap rate limits during multi-stop lookups
+                    await new Promise(r => setTimeout(r, 300));
                 }
             }
         }
 
-        // 3. Resolve Destination Location Context
+        // 3. Process Destination Coordinates via Nominatim
         const destResult = await resolveLocationInput(destNameValue, "Destination Station");
         if (!destResult) {
-            alert(`Could not resolve location context for Destination: "${destNameValue}"`);
-            document.getElementById('btnSubmit').disabled = false;
-            document.getElementById('btnSubmit').innerHTML = `<i class="bi bi-cloud-arrow-up-fill me-2"></i> Deploy & Start Tracking`;
+            alert(`Could not resolve location match for Destination: "${destNameValue}"`);
+            resetSubmitButton();
             return;
         }
         destLat = destResult.lat;
@@ -530,8 +480,8 @@
             icon: { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(32, 32) }
         });
 
-        // 4. Draw Polylines via REST response and Adjust Active Bounds
-        await drawRouteLine();
+        // 4. Trace OSRM Route Polylines and Adjust Camera Matrix
+        drawRouteLine();
         updateMapBounds();
 
         let combinedStopsArrayString = sourceNameValue;
@@ -543,6 +493,8 @@
         initiateLiveTrackingPipeline(busNumValue, busNameValue, combinedStopsArrayString);
     });
 </script>
+
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCF9GcWnQz-IeVXBfzbpVWntKppkLm1YpA&loading=async&callback=initMap" defer></script>
 
 </body>
 </html>
