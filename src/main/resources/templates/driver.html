@@ -7,6 +7,9 @@
     <link rel="icon" type="image/png" href="/icons/icon-192.png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+	<head>
+	    
+	</head>
     
     <style>
         :root {
@@ -153,14 +156,16 @@
     </div>
 </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCF9GcWnQz-IeVXBfzbpVWntKppkLm1YpA&libraries=places&callback=initMap" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCF9GcWnQz-IeVXBfzbpVWntKppkLm1YpA&callback=initMap" async defer></script>
 
 <script>
+    // System Keys Registry Segment
+    const KEY_GEOCODING = "AIzaSyB2zmZQ8o8A1sn6LzizO6mALMRZRUMqvDA";
+    const KEY_DIRECTIONS = "AIzaSyB7qdQdz4mHeEnRKrTZVDqe-toBw0AC8VI";
+
     let map;
-    let directionsService;
-    let directionsRenderer;
-    let geocoder;
     let fallbackPolyline = null;
+    let currentRenderedRouteLine = null; // Replaces directionsRenderer to bypass shared key constraints
     
     let sourceLat = null, sourceLng = null; 
     let destLat = null, destLng = null;     
@@ -187,25 +192,17 @@
     ];
 
     function initMap() {
-        geocoder = new google.maps.Geocoder();
-        directionsService = new google.maps.DirectionsService();
-        
-        directionsRenderer = new google.maps.DirectionsRenderer({
-            suppressMarkers: true
-        });
-
         map = new google.maps.Map(document.getElementById('map'), {
             center: { lat: 11.9000, lng: 78.3500 },
             zoom: 9,
             styles: darkMapStyle,
             disableDefaultUI: false
         });
-
-        directionsRenderer.setMap(map);
     }
 
     function clearPreviousRoute() {
         if (fallbackPolyline) fallbackPolyline.setMap(null);
+        if (currentRenderedRouteLine) currentRenderedRouteLine.setMap(null);
         if (sourceMarker) sourceMarker.setMap(null);
         if (destMarker) destMarker.setMap(null);
         customMarkersArray.forEach(m => m.setMap(null));
@@ -229,12 +226,12 @@
         }
     }
 
-    function drawRouteLine() {
+    // Requests Direction data directly using the standalone Directions Key Token
+    async function drawRouteLine() {
         if (routeCoordinatesGeoRegistry.length < 2) return;
 
-        if (fallbackPolyline) {
-            fallbackPolyline.setMap(null);
-        }
+        if (fallbackPolyline) fallbackPolyline.setMap(null);
+        if (currentRenderedRouteLine) currentRenderedRouteLine.setMap(null);
 
         let routeLineColor = '#22c55e'; 
         let routeWeight = 6;
@@ -244,53 +241,61 @@
             routeWeight = 8;            
         }
 
-        directionsRenderer.setOptions({
-            polylineOptions: {
-                strokeColor: routeLineColor,
-                strokeWeight: routeWeight,
-                strokeOpacity: 0.95
-            }
-        });
-
         const originPoint = routeCoordinatesGeoRegistry[0];
         const destinationPoint = routeCoordinatesGeoRegistry[routeCoordinatesGeoRegistry.length - 1];
         
-        const waypoints = [];
-        for (let i = 1; i < routeCoordinatesGeoRegistry.length - 1; i++) {
-            waypoints.push({
-                location: new google.maps.LatLng(routeCoordinatesGeoRegistry[i].lat, routeCoordinatesGeoRegistry[i].lng),
-                stopover: true
-            });
+        const originStr = `${originPoint.lat},${originPoint.lng}`;
+        const destStr = `${destinationPoint.lat},${destinationPoint.lng}`;
+        
+        let waypointsStr = "";
+        if (routeCoordinatesGeoRegistry.length > 2) {
+            const waypointsArr = [];
+            for (let i = 1; i < routeCoordinatesGeoRegistry.length - 1; i++) {
+                waypointsArr.push(`${routeCoordinatesGeoRegistry[i].lat},${routeCoordinatesGeoRegistry[i].lng}`);
+            }
+            waypointsStr = `&waypoints=${waypointsArr.join('|')}`;
         }
 
-        directionsService.route({
-            origin: new google.maps.LatLng(originPoint.lat, originPoint.lng),
-            destination: new google.maps.LatLng(destinationPoint.lat, destinationPoint.lng),
-            waypoints: waypoints,
-            travelMode: google.maps.TravelMode.DRIVING
-        }, function(response, status) {
-            if (status === google.maps.DirectionsStatus.OK) {
-                directionsRenderer.setDirections(response);
-            } else {
-                const straightLinePathCoords = routeCoordinatesGeoRegistry.map(pt => {
-                    return { lat: pt.lat, lng: pt.lng };
-                });
+        // Programmatic fallback route calculation array
+        const straightLinePathCoords = routeCoordinatesGeoRegistry.map(pt => ({ lat: pt.lat, lng: pt.lng }));
 
-                fallbackPolyline = new google.maps.Polyline({
-                    path: straightLinePathCoords,
+        try {
+            const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(originStr)}&destination=${encodeURIComponent(destStr)}${waypointsStr}&mode=driving&key=${KEY_DIRECTIONS}`;
+            
+            const response = await fetch(directionsUrl);
+            const data = await response.json();
+
+            if (data.status === "OK" && data.routes.length > 0) {
+                // Decodes the compressed geometric path polyline returned by the API
+                const points = google.maps.geometry.encoding.decodePath(data.routes[0].overview_polyline.points);
+                
+                currentRenderedRouteLine = new google.maps.Polyline({
+                    path: points,
                     geodesic: true,
-                    strokeColor: routeLineColor === '#22c55e' ? '#eab308' : routeLineColor,
-                    strokeOpacity: 0.8,
-                    strokeWeight: routeWeight - 1
+                    strokeColor: routeLineColor,
+                    strokeOpacity: 0.95,
+                    strokeWeight: routeWeight
                 });
-                fallbackPolyline.setMap(map);
+                currentRenderedRouteLine.setMap(map);
+            } else {
+                throw new Error(`Directions REST service returned status: ${data.status}`);
             }
-        });
+        } catch (error) {
+            console.warn("Direct route mapping pipeline error, triggering layout backup matrix:", error);
+            
+            fallbackPolyline = new google.maps.Polyline({
+                path: straightLinePathCoords,
+                geodesic: true,
+                strokeColor: routeLineColor === '#22c55e' ? '#eab308' : routeLineColor,
+                strokeOpacity: 0.8,
+                strokeWeight: routeWeight - 1
+            });
+            fallbackPolyline.setMap(map);
+        }
     }
 
     async function resolveLocationInput(inputText, defaultLabel) {
         let cleanText = inputText.trim();
-        
         let coordsPattern = /^([-+]?\d+\.\d+),\s*([-+]?\d+\.\d+)$/;
         let match = cleanText.match(coordsPattern);
         
@@ -305,48 +310,44 @@
         return await geocodePromise(cleanText);
     }
 
-    function geocodePromise(addressText) {
-        return new Promise((resolve) => {
-            if (typeof google === 'undefined' || !google.maps) {
-                console.error("Google Maps API script resources are missing or not finished loading.");
-                resolve(null);
-                return;
-            }
+    // Requests data directly from the Geocoding API using your dedicated Geocoding Key
+	function geocodePromise(addressText) {
+	    return new Promise((resolve) => {
+	        let queryWithRegion = addressText.trim();
+	        if (addressText.includes("|")) {
+	            const parts = addressText.split("|");
+	            queryWithRegion = `${parts[0].trim()}, ${parts[1].trim()}, Tamil Nadu, India`;
+	        } else {
+	            queryWithRegion = `${addressText.trim()}, Tamil Nadu, India`;
+	        }
 
-            let queryWithRegion = addressText.trim();
-            if (addressText.includes("|")) {
-                const parts = addressText.split("|");
-                const place = parts[0].trim();
-                const district = parts[1].trim();
-                queryWithRegion = `${place}, ${district}, Tamil Nadu, India`;
-            } else {
-                queryWithRegion = `${addressText.trim()}, Tamil Nadu, India`;
-            }
+	        // Generate a unique fallback function name for JSONP
+	        const callbackName = 'custom_geocode_cb_' + Math.round(Math.random() * 1000000);
+	        
+	        // Define the global temporary fallback function
+	        window[callbackName] = function(data) {
+	            delete window[callbackName];
+	            document.body.removeChild(script);
+	            
+	            if (data.status === "OK" && data.results.length > 0) {
+	                const location = data.results[0].geometry.location;
+	                resolve({
+	                    name: addressText.trim(),
+	                    lat: location.lat,
+	                    lng: location.lng
+	                });
+	            } else {
+	                console.error(`Geocoding failed. Status: ${data.status}. Msg: ${data.error_message || 'None'}`);
+	                resolve(null);
+	            }
+	        };
 
-            console.log("Searching with Google Geocoder Service:", queryWithRegion);
-
-            if (!geocoder) {
-                geocoder = new google.maps.Geocoder();
-            }
-
-            geocoder.geocode({ address: queryWithRegion }, function (results, status) {
-                if (status === google.maps.GeocoderStatus.OK && results.length > 0) {
-                    resolve({
-                        name: addressText.trim(),
-                        lat: results[0].geometry.location.lat(),
-                        lng: results[0].geometry.location.lng()
-                    });
-                } else {
-                    console.error(`Google Geocoding completely failed for query: "${queryWithRegion}". Status Code: ${status}`);
-                    if (status === "REQUEST_DENIED") {
-                        console.error("ATTENTION: Verify that 'Geocoding API' is actively turned ON under API Restrictions in your Google Cloud Dashboard!");
-                    }
-                    resolve(null);
-                }
-            });
-        });
-    }
-
+	        // Append as a script tag to cleanly bypass CORS policies
+	        const script = document.createElement('script');
+	        script.src = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(queryWithRegion)}&callback=${callbackName}&key=${KEY_GEOCODING}`;
+	        document.body.appendChild(script);
+	    });
+	}
     document.getElementById('btnGetGPS').addEventListener('click', function() {
         const btn = this;
         if (!navigator.geolocation) {
@@ -529,8 +530,8 @@
             icon: { url: "https://cdn-icons-png.flaticon.com/512/684/684908.png", scaledSize: new google.maps.Size(32, 32) }
         });
 
-        // 4. Draw Polylines and Adjust Active Bounds
-        drawRouteLine();
+        // 4. Draw Polylines via REST response and Adjust Active Bounds
+        await drawRouteLine();
         updateMapBounds();
 
         let combinedStopsArrayString = sourceNameValue;
